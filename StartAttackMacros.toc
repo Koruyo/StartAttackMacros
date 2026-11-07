@@ -14,6 +14,7 @@
 ## Author: koloman
 ## Version: @project-version@
 ## X-License: MIT
+## X-Curse-Project-ID: 1789476
 ## IconTexture: Interface\Icons\Ability_DualWield
 ## Category: Action Bars
 ## Category-deDE: Aktionsleisten
