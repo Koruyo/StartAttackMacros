@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="65%">
+      <stop offset="0" stop-color="#3a1d0c"/>
+      <stop offset="0.55" stop-color="#170c06"/>
+      <stop offset="1" stop-color="#050302"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ff9a2e" stop-opacity="0.85"/>
+      <stop offset="0.45" stop-color="#ff6a00" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#ff6a00" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe6a3"/>
+      <stop offset="0.5" stop-color="#d9a441"/>
+      <stop offset="1" stop-color="#7a5418"/>
+    </linearGradient>
+    <linearGradient id="blade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8d97a3"/>
+      <stop offset="0.48" stop-color="#f4f7fb"/>
+      <stop offset="0.52" stop-color="#c9d0d8"/>
+      <stop offset="1" stop-color="#5e6773"/>
+    </linearGradient>
+    <linearGradient id="grip" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#2b1608"/>
+      <stop offset="0.5" stop-color="#6b3a18"/>
+      <stop offset="1" stop-color="#2b1608"/>
+    </linearGradient>
+    <g id="sword">
+      <!-- blade -->
+      <path d="M256 70 L274 104 L272 330 L240 330 L238 104 Z" fill="url(#blade)" stroke="#1d2228" stroke-width="3"/>
+      <path d="M256 82 L256 326" stroke="#ffffff" stroke-opacity="0.35" stroke-width="2"/>
+      <!-- guard -->
+      <rect x="198" y="328" width="116" height="18" rx="6" fill="url(#gold)" stroke="#3b2608" stroke-width="3"/>
+      <circle cx="196" cy="337" r="11" fill="url(#gold)" stroke="#3b2608" stroke-width="3"/>
+      <circle cx="316" cy="337" r="11" fill="url(#gold)" stroke="#3b2608" stroke-width="3"/>
+      <!-- grip -->
+      <rect x="245" y="346" width="22" height="66" rx="5" fill="url(#grip)" stroke="#1a0c04" stroke-width="3"/>
+      <path d="M245 360 L267 368 M245 376 L267 384 M245 392 L267 400" stroke="#a8692c" stroke-width="3"/>
+      <!-- pommel -->
+      <circle cx="256" cy="424" r="15" fill="url(#gold)" stroke="#3b2608" stroke-width="3"/>
+      <circle cx="256" cy="424" r="5" fill="#ff7a1a"/>
+    </g>
+  </defs>
+
+  <rect x="8" y="8" width="496" height="496" rx="88" fill="url(#bg)"/>
+  <circle cx="256" cy="250" r="190" fill="url(#glow)"/>
+
+  <circle cx="256" cy="256" r="200" fill="none" stroke="#ff8c1a" stroke-opacity="0.25" stroke-width="4" stroke-dasharray="6 14"/>
+
+  <g transform="translate(0 -12) rotate(-42 256 256)"><use href="#sword"/></g>
+  <g transform="translate(0 -12) rotate(42 256 256)"><use href="#sword"/></g>
+
+  <!-- spark at the crossing -->
+  <g transform="translate(256 200)">
+    <path d="M0 -46 L9 -9 L46 0 L9 9 L0 46 L-9 9 L-46 0 L-9 -9 Z" fill="#fff4d6"/>
+    <circle r="10" fill="#ffffff"/>
+  </g>
+
+  <rect x="8" y="8" width="496" height="496" rx="88" fill="none" stroke="url(#gold)" stroke-width="12"/>
+  <rect x="22" y="22" width="468" height="468" rx="76" fill="none" stroke="#000" stroke-opacity="0.6" stroke-width="3"/>
+</svg>

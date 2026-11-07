@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1280 640" width="1280" height="640">
+  <defs>
+    <radialGradient id="bg" cx="30%" cy="50%" r="80%">
+      <stop offset="0" stop-color="#2e1709"/>
+      <stop offset="0.6" stop-color="#120905"/>
+      <stop offset="1" stop-color="#050302"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe6a3"/>
+      <stop offset="0.55" stop-color="#e0ad4c"/>
+      <stop offset="1" stop-color="#9a6a1e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect x="14" y="14" width="1252" height="612" rx="18" fill="none" stroke="url(#gold)" stroke-opacity="0.6" stroke-width="3"/>
+  <image x="90" y="130" width="380" height="380" xlink:href="logo.png"/>
+  <text x="540" y="290" font-family="Noto Serif, DejaVu Serif, serif" font-weight="bold" font-size="96" fill="#ff8c1a">StartAttack</text>
+  <text x="540" y="390" font-family="Noto Serif, DejaVu Serif, serif" font-weight="bold" font-size="96" fill="url(#gold)">Macros</text>
+  <rect x="544" y="420" width="560" height="3" fill="#ff8c1a" opacity="0.6"/>
+  <text x="544" y="470" font-family="Noto Sans, DejaVu Sans, sans-serif" font-size="30" fill="#e8dcc8">Auto-attack with every ability – one click.</text>
+  <text x="544" y="512" font-family="DejaVu Sans Mono, monospace" font-size="24" fill="#a89b86">/startattack  ·  World of Warcraft Classic</text>
+</svg>

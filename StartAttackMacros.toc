@@ -1,0 +1,26 @@
+## Interface: 16001, 11507
+## Title: |cffff8c1aStartAttack|r Macros
+## Notes: Creates /startattack macros for your attack abilities and swaps them onto your action bars.
+## Notes-deDE: Erstellt /startattack-Makros für deine Angriffsfähigkeiten und setzt sie direkt in die Aktionsleisten.
+## Notes-frFR: Crée des macros /startattack pour vos techniques offensives et les place directement sur vos barres d'action.
+## Notes-esES: Crea macros /startattack para tus habilidades de ataque y las coloca directamente en tus barras de acción.
+## Notes-esMX: Crea macros /startattack para tus habilidades de ataque y las coloca directamente en tus barras de acción.
+## Notes-itIT: Crea macro /startattack per le tue abilità d'attacco e le mette direttamente nelle barre delle azioni.
+## Notes-ptBR: Cria macros /startattack para suas habilidades de ataque e as coloca direto nas barras de ações.
+## Notes-ruRU: Создаёт макросы /startattack для атакующих способностей и сразу ставит их на панели команд.
+## Notes-koKR: 공격 기술용 /startattack 매크로를 만들어 행동 단축바에 바로 배치합니다.
+## Notes-zhCN: 为攻击技能创建 /startattack 宏，并直接放到动作条上。
+## Notes-zhTW: 為攻擊技能建立 /startattack 巨集，並直接放到快捷列上。
+## Author: koloman
+## Version: @project-version@
+## X-License: MIT
+## IconTexture: Interface\Icons\Ability_DualWield
+## Category: Action Bars
+## Category-deDE: Aktionsleisten
+## SavedVariables: StartAttackMacrosDB
+## AddonCompartmentFunc: StartAttackMacros_OnCompartmentClick
+## AddonCompartmentFuncOnEnter: StartAttackMacros_OnCompartmentEnter
+## AddonCompartmentFuncOnLeave: StartAttackMacros_OnCompartmentLeave
+
+Locales.lua
+StartAttackMacros.lua

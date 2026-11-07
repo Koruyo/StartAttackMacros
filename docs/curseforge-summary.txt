@@ -1,0 +1,1 @@
+Every ability starts your auto-attack: creates /startattack macros for your attack abilities and swaps them onto your action bars in one click.

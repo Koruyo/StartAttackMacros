@@ -1,0 +1,13 @@
+package-as: StartAttackMacros
+
+enable-nolib-creation: no
+
+ignore:
+  - media
+  - docs
+  - README.md
+  - .github
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
