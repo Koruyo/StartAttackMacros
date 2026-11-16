@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.1
+- "Convert all attacks on your action bars" now also updates the macros the addon already
+  created, so they pick up the current text fields and tick boxes
+- A yellow question mark marks abilities whose macro does not match the current texts yet;
+  the green check mark now means the macro is up to date
+
 ## v1.3.0
 - New fields "Add after /startattack" and "Add after /cast" in the window: insert your own
   macro conditions, for example `[harm,nodead]` and `[@mouseover,harm,nodead][]`, into every macro

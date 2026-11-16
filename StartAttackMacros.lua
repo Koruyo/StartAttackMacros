@@ -118,6 +118,10 @@ local function MacroName(spell)
     return (PREFIX .. spell):sub(1, MAX_NAME)
 end
 
+local function CleanConditions(text)
+    return ((text or ""):gsub("%s+", " "):match("^ ?(.-) ?$"))
+end
+
 -- cond = Text hinter /cast, atk = Text hinter /startattack ("" = keiner)
 local function BuildBody(spell, cond, atk)
     return "#showtooltip " .. spell
@@ -126,34 +130,40 @@ local function BuildBody(spell, cond, atk)
 end
 
 -- Zerlegt ein vom Addon erzeugtes Makro wieder in Zauber und die beiden Texte
+-- (tolerant gegenüber Handarbeit: Leerzeichen am Ende, fehlendes Leerzeichen vor dem Zauber)
 local function ParseBody(body)
+    body = body:gsub("%s+$", "")
     local spell, atk, cast = body:match("^#showtooltip ([^\n]+)\n/startattack([^\n]*)\n/cast ([^\n]+)$")
     if not spell or cast:sub(-#spell) ~= spell then return end
     local cond = cast:sub(1, -#spell - 1)
-    if cond ~= "" and cond:sub(-1) ~= " " then return end
+    if cond ~= "" and not cond:find("[%s%]]$") then return end
     if atk ~= "" and atk:sub(1, 1) ~= " " then return end
-    return spell, atk:sub(2), cond:sub(1, -2)
+    return spell, CleanConditions(atk), CleanConditions(cond)
 end
 
--- Ohne "cond"/"atk" gilt die aktuelle Einstellung (Text + Haken im Fenster)
-local function MacroBody(spell, cond, atk)
+-- Ohne "cond"/"atk" gilt die aktuelle Einstellung (Text + Haken im Fenster).
+-- Zweiter Rückgabewert: true, wenn die Texte wegen der Längengrenze weggelassen wurden.
+local function ComputeBody(spell, cond, atk)
     cond = cond or (db.useConditions and db.conditions) or ""
     atk = atk or (db.useAttackConditions and db.attackConditions) or ""
     local body = BuildBody(spell, cond, atk)
-    if #body > MAX_BODY then
-        Print(L.MSG_TOO_LONG:format(spell))
-        body = BuildBody(spell, "", "")
-    end
+    if #body > MAX_BODY then return BuildBody(spell, "", ""), true end
+    return body, false
+end
+
+local function MacroBody(spell, cond, atk)
+    local body, tooLong = ComputeBody(spell, cond, atk)
+    if tooLong then Print(L.MSG_TOO_LONG:format(spell)) end
     return body
 end
 
-local function CleanConditions(text)
-    return ((text or ""):gsub("%s+", " "):match("^ ?(.-) ?$"))
-end
-
-local function HasMacro(spell)
+-- nil = kein Makro, "current" = entspricht den aktuellen Einstellungen,
+-- "outdated" = Makro vorhanden, ein Klick würde es aber ändern
+local function MacroState(spell)
     local idx = GetMacroIndexByName(MacroName(spell))
-    return idx and idx > 0
+    if not idx or idx == 0 then return nil end
+    local body = (GetMacroBody(idx) or ""):gsub("%s+$", "")
+    return body == ComputeBody(spell) and "current" or "outdated"
 end
 
 -- Erstellt oder aktualisiert das Makro. Gibt den Makronamen zurück (Index ändert sich beim Sortieren!)
@@ -185,6 +195,21 @@ local function EnsureMacro(spell)
     return name
 end
 
+-- Ruft fn(idx, body, spell, atk, cond) für jedes vom Addon erzeugte Makro auf
+local function ForEachAddonMacro(fn)
+    local function visit(idx)
+        local name = GetMacroInfo(idx)
+        local body = name and name:sub(1, #PREFIX) == PREFIX and GetMacroBody(idx)
+        if not body then return end
+        local spell, atk, cond = ParseBody(body)
+        if spell and MacroName(spell) == name then fn(idx, body, spell, atk, cond) end
+    end
+    local numGlobal, numChar = GetNumMacros()
+    local firstChar = (MAX_ACCOUNT_MACROS or 120) + 1
+    for i = 1, numGlobal do visit(i) end
+    for i = firstChar, firstChar + numChar - 1 do visit(i) end
+end
+
 -- Nach einer Textänderung: Makros, die den alten Text enthalten, bekommen den neuen.
 -- Makros ohne den Text (oder von Hand geänderte) bleiben unberührt.
 -- key = "conditions" (hinter /cast) oder "attackConditions" (hinter /startattack)
@@ -199,12 +224,7 @@ local function UpdateExistingMacros(key, old)
         return
     end
     local count = 0
-    local function update(idx)
-        local name = GetMacroInfo(idx)
-        local body = name and name:sub(1, #PREFIX) == PREFIX and GetMacroBody(idx)
-        if not body then return end
-        local spell, atk, cond = ParseBody(body)
-        if not spell then return end
+    ForEachAddonMacro(function(idx, _, spell, atk, cond)
         if key == "conditions" and cond == old then
             cond = new
         elseif key == "attackConditions" and atk == old then
@@ -214,12 +234,23 @@ local function UpdateExistingMacros(key, old)
         end
         EditMacro(idx, nil, nil, MacroBody(spell, cond, atk))
         count = count + 1
-    end
-    local numGlobal, numChar = GetNumMacros()
-    local firstChar = (MAX_ACCOUNT_MACROS or 120) + 1
-    for i = 1, numGlobal do update(i) end
-    for i = firstChar, firstChar + numChar - 1 do update(i) end
+    end)
     if count > 0 then Print(L.MSG_COND_UPDATED:format(count)) end
+end
+
+-- Bringt alle Addon-Makros auf den Stand der aktuellen Einstellungen (Texte + Haken).
+-- Gibt zurück, wie viele sich geändert haben.
+local function RefreshAllMacros()
+    local count = 0
+    ForEachAddonMacro(function(idx, body, spell)
+        local new, tooLong = ComputeBody(spell)
+        if new ~= body then
+            if tooLong then Print(L.MSG_TOO_LONG:format(spell)) end
+            EditMacro(idx, nil, nil, new)
+            count = count + 1
+        end
+    end)
+    return count
 end
 
 local function SetConditions(key, text)
@@ -246,6 +277,10 @@ local function ConvertActionBars(includeAll)
         Print(L.MSG_COMBAT)
         return
     end
+    -- 0) Vorhandene Makros an die aktuellen Texte/Haken anpassen
+    --    (liegen schon als Makro in der Leiste und würden sonst übersprungen)
+    local updated = RefreshAllMacros()
+
     -- 1) Welche Slots enthalten Angriffszauber?
     local todo = {}
     for slot = 1, 180 do
@@ -258,7 +293,7 @@ local function ConvertActionBars(includeAll)
         end
     end
     if #todo == 0 then
-        Print(L.MSG_NOTHING_FOUND)
+        Print(updated > 0 and L.MSG_COND_UPDATED:format(updated) or L.MSG_NOTHING_FOUND)
         return
     end
 
@@ -284,6 +319,7 @@ local function ConvertActionBars(includeAll)
         end
     end
     Print(L.MSG_CONVERTED:format(count))
+    if updated > 0 then Print(L.MSG_COND_UPDATED:format(updated)) end
 end
 
 ------------------------------------------------------------------------
@@ -297,6 +333,19 @@ local function UpdateFooter()
     local numGlobal, numChar = GetNumMacros()
     frame.footer:SetFormattedText(L.MACRO_SLOTS,
         numChar, MAX_CHARACTER_MACROS or 18, numGlobal, MAX_ACCOUNT_MACROS or 120)
+end
+
+-- Grüner Haken = Makro aktuell, gelbes Fragezeichen = Makro vorhanden, aber nicht aktuell
+local CHECK_TEXTURE = {
+    current = "Interface\\RaidFrame\\ReadyCheck-Ready",
+    outdated = "Interface\\RaidFrame\\ReadyCheck-Waiting",
+}
+
+local function UpdateCheck(b)
+    local state = MacroState(b.spell)
+    b.state = state
+    b.check:SetTexture(CHECK_TEXTURE[state or "current"])
+    b.check:SetShown(state ~= nil)
 end
 
 local function CreateSpellButton(i)
@@ -324,7 +373,7 @@ local function CreateSpellButton(i)
 
     local function grab(self)
         PickupSpellMacro(self.spell)
-        self.check:Show()
+        UpdateCheck(self)
         UpdateFooter()
     end
     b:SetScript("OnClick", grab)
@@ -333,8 +382,10 @@ local function CreateSpellButton(i)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
         GameTooltip:SetSpellByID(self.spellID)
         GameTooltip:AddLine(" ")
-        if self.check:IsShown() then
+        if self.state == "current" then
             GameTooltip:AddLine(L.TT_HAS_MACRO, 0.25, 1, 0.25)
+        elseif self.state == "outdated" then
+            GameTooltip:AddLine(L.TT_OUTDATED, 1, 0.82, 0)
         end
         GameTooltip:AddLine(L.TT_GRAB, 1, 0.55, 0.1)
         GameTooltip:Show()
@@ -355,7 +406,7 @@ local function Refresh()
         buttons[i] = b
         b.spell, b.spellID = s.name, s.id
         b.icon:SetTexture(s.icon)
-        b.check:SetShown(HasMacro(s.name))
+        UpdateCheck(b)
         local col, row = (i - 1) % COLS, math.floor((i - 1) / COLS)
         b:ClearAllPoints()
         b:SetPoint("TOPLEFT", 6 + col * (SIZE + GAP), -6 - row * (SIZE + GAP))
@@ -444,6 +495,7 @@ local function CreateMainFrame()
         labelWidth = math.max(labelWidth, text:GetStringWidth())
         r.check:SetScript("OnClick", function(self)
             db[r.use] = self:GetChecked() and true or false
+            Refresh()   -- Markierungen: welche Makros sind noch aktuell?
         end)
     end
 
@@ -463,6 +515,7 @@ local function CreateMainFrame()
         end)
         box:HookScript("OnEditFocusLost", function(self)
             SetConditions(r.key, self:GetText())
+            Refresh()
             self:SetText(db[r.key])
             self:SetCursorPosition(0)
         end)
@@ -506,6 +559,7 @@ local function CreateMainFrame()
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText(L.CONVERT_TT_TITLE)
         GameTooltip:AddLine(L.CONVERT_TT_TEXT, 1, 1, 1, true)
+        GameTooltip:AddLine(L.CONVERT_TT_UPDATE, 1, 1, 1, true)
         GameTooltip:Show()
     end)
     convert:SetScript("OnLeave", function() GameTooltip:Hide() end)

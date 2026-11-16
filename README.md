@@ -29,8 +29,9 @@ macro for every single ability:
   macro, in the same slot.
 - **Smart**: only attack abilities are listed. Ranks are merged (always casts the highest rank),
   and Auto Attack / Shoot / Auto Shot are skipped.
-- **Macro tracking**: a check mark shows which abilities already have a macro, and a counter
-  shows your free macro slots.
+- **Macro tracking**: a green check mark shows which abilities already have an up-to-date
+  macro, a yellow question mark shows macros that do not match your current texts yet, and a
+  counter shows your free macro slots.
 - **Your own conditions**: type something like `[@mouseover,harm,nodead][]` into the window and
   it is inserted after `/cast` in every macro. A second field does the same for `/startattack`,
   for example `[harm,nodead]`. Untick a box to create a macro without that text.
@@ -74,6 +75,9 @@ this:
   it and click an ability to get that one macro without the text.
 - When you change a text, macros that contain the old text are updated. Macros without it, and
   macros you edited by hand, are left alone.
+- A yellow question mark on an ability means its macro differs from what the fields and tick
+  boxes would produce now. Click the ability to update that macro, or press **Convert all
+  attacks on your action bars** to update every macro the addon created.
 - The trailing `[]` after `/cast` makes the macro fall back to your current target.
 - `/startattack [harm,nodead]` only starts auto-attack on a hostile, living target. It no longer
   picks the nearest enemy when you have no target.
@@ -98,6 +102,9 @@ Aktionsleisten.
 - Felder **Nach /startattack einfügen** und **Nach /cast einfügen** im Fenster: eigene
   Bedingungen wie `[harm,nodead]` bzw. `[@mouseover,harm,nodead][]` für alle Makros. Ohne Haken
   wird das Makro ohne den jeweiligen Text erstellt.
+- Grüner Haken = Makro ist aktuell, gelbes Fragezeichen = Makro passt noch nicht zu den
+  aktuellen Texten. Fähigkeit anklicken oder **Alle Angriffe in den Leisten umwandeln** drücken,
+  um die Makros zu aktualisieren.
 - Optionen: **Esc → Optionen → AddOns → StartAttack Macros**
 
 ---
