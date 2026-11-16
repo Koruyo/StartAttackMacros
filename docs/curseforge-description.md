@@ -16,8 +16,9 @@ lot of damage. The usual fix is to write a `/startattack` macro for every abilit
 - **Smart filtering**: only attack abilities. Ranks are merged (always the highest rank), and
   Auto Attack / Shoot / Auto Shot are skipped.
 - **Macro tracking**: check marks for existing macros and a free-slot counter.
-- **Your own conditions**: add text like `[@mouseover,harm,nodead][]` after `/cast` in every
-  macro, with a tick box to leave it out of individual macros.
+- **Your own conditions**: add text like `[@mouseover,harm,nodead][]` after `/cast` and
+  `[harm,nodead]` after `/startattack` in every macro, with tick boxes to leave them out of
+  individual macros.
 - **Minimap button**, **Addon Compartment** entry and a full **options panel**.
 - **Lightweight**: no libraries, no dependencies.
 - **10 languages**: English, Deutsch, Français, Español, Italiano, Português, Русский, 한국어, 简体中文, 繁體中文

@@ -4,7 +4,8 @@
 --   #showtooltip Zauber
 --   /startattack
 --   /cast Zauber
--- (optional mit eigenen Bedingungen hinter /cast, z. B. [@mouseover,harm,nodead][])
+-- (optional mit eigenen Bedingungen hinter /startattack und /cast,
+--  z. B. [harm,nodead] bzw. [@mouseover,harm,nodead][])
 -- und kann sie per Klick auf den Cursor legen oder direkt in die Leisten setzen.
 
 local ADDON_NAME, ns = ...
@@ -18,6 +19,7 @@ local MAX_NAME = 16
 local MACRO_ICON = "INV_MISC_QUESTIONMARK" -- #showtooltip zeigt automatisch das Zaubersymbol
 local MAX_BODY = 255        -- maximale Makrolänge
 local COND_EXAMPLE = "[@mouseover,harm,nodead][]"
+local ATK_EXAMPLE = "[harm,nodead]"
 
 -- Fähigkeiten, die selbst schon Autoangriff/Fernkampf sind
 local SKIP = { [6603] = true, [75] = true, [5019] = true, [3018] = true }
@@ -32,8 +34,10 @@ local COMMANDS = {
 
 local DEFAULTS = {
     minimap = { hide = false, angle = 215 },
-    conditions = "",        -- Text, der hinter /cast eingefügt wird
-    useConditions = true,   -- Haken im Fenster: Text in neue Makros einfügen?
+    conditions = "",              -- Text, der hinter /cast eingefügt wird
+    useConditions = true,         -- Haken im Fenster: Text in neue Makros einfügen?
+    attackConditions = "",        -- dasselbe für die Zeile /startattack
+    useAttackConditions = true,
 }
 local db
 
@@ -114,18 +118,31 @@ local function MacroName(spell)
     return (PREFIX .. spell):sub(1, MAX_NAME)
 end
 
-local function BuildBody(spell, cond)
-    return "#showtooltip " .. spell .. "\n/startattack\n/cast "
-        .. (cond ~= "" and cond .. " " or "") .. spell
+-- cond = Text hinter /cast, atk = Text hinter /startattack ("" = keiner)
+local function BuildBody(spell, cond, atk)
+    return "#showtooltip " .. spell
+        .. "\n/startattack" .. (atk ~= "" and " " .. atk or "")
+        .. "\n/cast " .. (cond ~= "" and cond .. " " or "") .. spell
 end
 
--- Ohne "cond" gilt die aktuelle Einstellung (Text + Haken im Fenster)
-local function MacroBody(spell, cond)
+-- Zerlegt ein vom Addon erzeugtes Makro wieder in Zauber und die beiden Texte
+local function ParseBody(body)
+    local spell, atk, cast = body:match("^#showtooltip ([^\n]+)\n/startattack([^\n]*)\n/cast ([^\n]+)$")
+    if not spell or cast:sub(-#spell) ~= spell then return end
+    local cond = cast:sub(1, -#spell - 1)
+    if cond ~= "" and cond:sub(-1) ~= " " then return end
+    if atk ~= "" and atk:sub(1, 1) ~= " " then return end
+    return spell, atk:sub(2), cond:sub(1, -2)
+end
+
+-- Ohne "cond"/"atk" gilt die aktuelle Einstellung (Text + Haken im Fenster)
+local function MacroBody(spell, cond, atk)
     cond = cond or (db.useConditions and db.conditions) or ""
-    local body = BuildBody(spell, cond)
+    atk = atk or (db.useAttackConditions and db.attackConditions) or ""
+    local body = BuildBody(spell, cond, atk)
     if #body > MAX_BODY then
         Print(L.MSG_TOO_LONG:format(spell))
-        body = BuildBody(spell, "")
+        body = BuildBody(spell, "", "")
     end
     return body
 end
@@ -170,12 +187,14 @@ end
 
 -- Nach einer Textänderung: Makros, die den alten Text enthalten, bekommen den neuen.
 -- Makros ohne den Text (oder von Hand geänderte) bleiben unberührt.
-local pendingOld
+-- key = "conditions" (hinter /cast) oder "attackConditions" (hinter /startattack)
+local pending = {}
 
-local function UpdateExistingMacros(old)
-    if old == "" or old == db.conditions then return end
+local function UpdateExistingMacros(key, old)
+    local new = db[key]
+    if old == "" or old == new then return end
     if InCombatLockdown() then
-        pendingOld = pendingOld or old
+        pending[key] = pending[key] or old
         Print(L.MSG_COND_COMBAT)
         return
     end
@@ -183,11 +202,18 @@ local function UpdateExistingMacros(old)
     local function update(idx)
         local name = GetMacroInfo(idx)
         local body = name and name:sub(1, #PREFIX) == PREFIX and GetMacroBody(idx)
-        local spell = body and body:match("^#showtooltip ([^\n]+)\n/startattack\n/cast ")
-        if spell and body == BuildBody(spell, old) then
-            EditMacro(idx, nil, nil, MacroBody(spell, db.conditions))
-            count = count + 1
+        if not body then return end
+        local spell, atk, cond = ParseBody(body)
+        if not spell then return end
+        if key == "conditions" and cond == old then
+            cond = new
+        elseif key == "attackConditions" and atk == old then
+            atk = new
+        else
+            return
         end
+        EditMacro(idx, nil, nil, MacroBody(spell, cond, atk))
+        count = count + 1
     end
     local numGlobal, numChar = GetNumMacros()
     local firstChar = (MAX_ACCOUNT_MACROS or 120) + 1
@@ -196,10 +222,10 @@ local function UpdateExistingMacros(old)
     if count > 0 then Print(L.MSG_COND_UPDATED:format(count)) end
 end
 
-local function SetConditions(text)
-    local old = db.conditions
-    db.conditions = CleanConditions(text)
-    UpdateExistingMacros(old)
+local function SetConditions(key, text)
+    local old = db[key]
+    db[key] = CleanConditions(text)
+    UpdateExistingMacros(key, old)
 end
 
 local function PickupSpellMacro(spell)
@@ -343,7 +369,7 @@ end
 
 local function CreateMainFrame()
     frame = CreateFrame("Frame", "StartAttackMacrosFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(COLS * (SIZE + GAP) + 54, 486)
+    frame:SetSize(COLS * (SIZE + GAP) + 54, 512)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
     frame:SetClampedToScreen(true)
@@ -383,7 +409,7 @@ local function CreateMainFrame()
     -- Zauberliste
     local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 12, -72)
-    scroll:SetPoint("BOTTOMRIGHT", -32, 122)
+    scroll:SetPoint("BOTTOMRIGHT", -32, 148)
     scrollChild = CreateFrame("Frame", nil, scroll)
     scrollChild:SetSize(COLS * (SIZE + GAP) + 6, 1)
     scroll:SetScrollChild(scrollChild)
@@ -395,51 +421,65 @@ local function CreateMainFrame()
     local sep2 = frame:CreateTexture(nil, "ARTWORK")
     sep2:SetColorTexture(1, 1, 1, 0.12)
     sep2:SetHeight(1)
-    sep2:SetPoint("BOTTOMLEFT", 12, 116)
-    sep2:SetPoint("BOTTOMRIGHT", -12, 116)
+    sep2:SetPoint("BOTTOMLEFT", 12, 142)
+    sep2:SetPoint("BOTTOMRIGHT", -12, 142)
 
     -- Unterer Bereich
-    -- Eigene Bedingungen hinter /cast: Haken (einfügen ja/nein) + Textfeld
-    local condCheck = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
-    condCheck:SetPoint("BOTTOMLEFT", 12, 88)
-    condCheck:SetSize(24, 24)
-    condCheck:SetChecked(db.useConditions)
-    local condText = condCheck:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    condText:SetPoint("LEFT", condCheck, "RIGHT", 2, 1)
-    condText:SetText(L.COND_LABEL)
-    condCheck:SetScript("OnClick", function(self)
-        db.useConditions = self:GetChecked() and true or false
-    end)
-
-    local condBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
-    condBox:SetPoint("LEFT", condText, "RIGHT", 12, 0)
-    condBox:SetSize(math.max(120, frame:GetWidth() - 68 - condText:GetStringWidth()), 20)
-    condBox:SetAutoFocus(false)
-    condBox:SetMaxLetters(120)
-    condBox:SetText(db.conditions)
-    condBox:SetCursorPosition(0)
-    condBox:SetScript("OnEnterPressed", condBox.ClearFocus)
-    condBox:SetScript("OnEscapePressed", function(self)
-        self:SetText(db.conditions)
-        self:ClearFocus()
-    end)
-    condBox:HookScript("OnEditFocusLost", function(self)
-        SetConditions(self:GetText())
-        self:SetText(db.conditions)
-        self:SetCursorPosition(0)
-    end)
-
-    local function condTooltip(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(L.COND_TT_TITLE)
-        GameTooltip:AddLine(L.COND_TT_TEXT:format("|cffff8c1a" .. COND_EXAMPLE .. "|r"), 1, 1, 1, true)
-        GameTooltip:AddLine(" ")
-        GameTooltip:AddLine(BuildBody(L.CMD_SPELL, CleanConditions(condBox:GetText())), 0.6, 0.6, 0.6)
-        GameTooltip:Show()
+    -- Eigene Bedingungen: je Makrozeile ein Haken (einfügen ja/nein) + Textfeld
+    local rows = {
+        { y = 114, label = L.ATK_LABEL, key = "attackConditions", use = "useAttackConditions",
+          tip = L.ATK_TT_TEXT, example = ATK_EXAMPLE },
+        { y = 88, label = L.COND_LABEL, key = "conditions", use = "useConditions",
+          tip = L.COND_TT_TEXT, example = COND_EXAMPLE },
+    }
+    local labelWidth = 0
+    for _, r in ipairs(rows) do
+        r.check = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
+        r.check:SetPoint("BOTTOMLEFT", 12, r.y)
+        r.check:SetSize(24, 24)
+        r.check:SetChecked(db[r.use])
+        local text = r.check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        text:SetPoint("LEFT", r.check, "RIGHT", 2, 1)
+        text:SetText(r.label)
+        labelWidth = math.max(labelWidth, text:GetStringWidth())
+        r.check:SetScript("OnClick", function(self)
+            db[r.use] = self:GetChecked() and true or false
+        end)
     end
-    for _, w in ipairs({ condCheck, condBox }) do
-        w:SetScript("OnEnter", condTooltip)
-        w:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    for _, r in ipairs(rows) do
+        local box = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+        r.box = box
+        box:SetPoint("LEFT", r.check, "RIGHT", labelWidth + 14, 0)   -- beide Felder bündig
+        box:SetSize(math.max(120, frame:GetWidth() - 68 - labelWidth), 20)
+        box:SetAutoFocus(false)
+        box:SetMaxLetters(120)
+        box:SetText(db[r.key])
+        box:SetCursorPosition(0)
+        box:SetScript("OnEnterPressed", box.ClearFocus)
+        box:SetScript("OnEscapePressed", function(self)
+            self:SetText(db[r.key])
+            self:ClearFocus()
+        end)
+        box:HookScript("OnEditFocusLost", function(self)
+            SetConditions(r.key, self:GetText())
+            self:SetText(db[r.key])
+            self:SetCursorPosition(0)
+        end)
+
+        local function tooltip(self)
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:SetText(L.COND_TT_TITLE)
+            GameTooltip:AddLine(r.tip:format("|cffff8c1a" .. r.example .. "|r"), 1, 1, 1, true)
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(BuildBody(L.CMD_SPELL, CleanConditions(rows[2].box:GetText()),
+                CleanConditions(rows[1].box:GetText())), 0.6, 0.6, 0.6)
+            GameTooltip:Show()
+        end
+        for _, w in ipairs({ r.check, box }) do
+            w:SetScript("OnEnter", tooltip)
+            w:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        end
     end
 
     local check = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
@@ -709,16 +749,19 @@ ev:SetScript("OnEvent", function(self, event, arg1)
         for k, v in pairs(DEFAULTS.minimap) do
             if db.minimap[k] == nil then db.minimap[k] = v end
         end
-        if type(db.conditions) ~= "string" then db.conditions = DEFAULTS.conditions end
-        if db.useConditions == nil then db.useConditions = DEFAULTS.useConditions end
+        for _, k in ipairs({ "conditions", "attackConditions" }) do
+            if type(db[k]) ~= "string" then db[k] = DEFAULTS[k] end
+        end
+        for _, k in ipairs({ "useConditions", "useAttackConditions" }) do
+            if db[k] == nil then db[k] = DEFAULTS[k] end
+        end
         CreateMinimapButton()
         CreateOptionsPanel()
         self:UnregisterEvent("ADDON_LOADED")
     elseif event == "PLAYER_REGEN_ENABLED" then
-        if pendingOld then
-            local old = pendingOld
-            pendingOld = nil
-            UpdateExistingMacros(old)
+        for key, old in pairs(pending) do
+            pending[key] = nil
+            UpdateExistingMacros(key, old)
         end
     elseif frame and frame:IsShown() then
         Refresh()

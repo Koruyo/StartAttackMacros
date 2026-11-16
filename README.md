@@ -32,7 +32,8 @@ macro for every single ability:
 - **Macro tracking**: a check mark shows which abilities already have a macro, and a counter
   shows your free macro slots.
 - **Your own conditions**: type something like `[@mouseover,harm,nodead][]` into the window and
-  it is inserted after `/cast` in every macro. Untick the box to create a macro without it.
+  it is inserted after `/cast` in every macro. A second field does the same for `/startattack`,
+  for example `[harm,nodead]`. Untick a box to create a macro without that text.
 - **Minimap button**, **Addon Compartment** entry and a full **options panel**.
 - Lightweight: no libraries, no dependencies.
 - **10 languages**: English, Deutsch, Français, Español, Italiano, Português, Русский, 한국어, 简体中文, 繁體中文
@@ -59,20 +60,23 @@ Or: **Esc → Options → AddOns → StartAttack Macros**, or click the minimap 
 
 ### Extra macro conditions
 
-The field **Add after /cast** at the bottom of the window takes any macro conditions. With
-`[@mouseover,harm,nodead][]` the macros look like this:
+The fields **Add after /startattack** and **Add after /cast** at the bottom of the window take
+any macro conditions. With `[harm,nodead]` and `[@mouseover,harm,nodead][]` the macros look like
+this:
 
 ```
 #showtooltip Sinister Strike
-/startattack
+/startattack [harm,nodead]
 /cast [@mouseover,harm,nodead][] Sinister Strike
 ```
 
-- The tick box decides whether the text goes into the macros you create or convert next. Untick
+- Each tick box decides whether its text goes into the macros you create or convert next. Untick
   it and click an ability to get that one macro without the text.
-- When you change the text, macros that contain the old text are updated. Macros without it, and
+- When you change a text, macros that contain the old text are updated. Macros without it, and
   macros you edited by hand, are left alone.
-- The trailing `[]` makes the macro fall back to your current target.
+- The trailing `[]` after `/cast` makes the macro fall back to your current target.
+- `/startattack [harm,nodead]` only starts auto-attack on a hostile, living target. It no longer
+  picks the nearest enemy when you have no target.
 
 ## Installation
 
@@ -91,8 +95,9 @@ Aktionsleisten.
 
 - `/sam` öffnet das Fenster. Fähigkeit anklicken oder ziehen und in die Leiste legen.
 - `/sam convert` ersetzt alle Angriffsfähigkeiten in den Leisten durch ihre Makros.
-- Feld **Nach /cast einfügen** im Fenster: eigene Bedingungen wie `[@mouseover,harm,nodead][]`
-  für alle Makros. Ohne Haken wird das Makro ohne den Text erstellt.
+- Felder **Nach /startattack einfügen** und **Nach /cast einfügen** im Fenster: eigene
+  Bedingungen wie `[harm,nodead]` bzw. `[@mouseover,harm,nodead][]` für alle Makros. Ohne Haken
+  wird das Makro ohne den jeweiligen Text erstellt.
 - Optionen: **Esc → Optionen → AddOns → StartAttack Macros**
 
 ---

@@ -15,6 +15,8 @@ local L = {
     TT_HAS_MACRO       = "Macro exists",
     TT_GRAB            = "Click or drag: place macro on your action bar",
     COND_LABEL         = "Add after /cast:",
+    ATK_LABEL          = "Add after /startattack:",
+    ATK_TT_TEXT        = "Works like the field below, but for the /startattack line. With %s, auto-attack only starts on a hostile, living target.",
     COND_TT_TITLE      = "Extra macro conditions",
     COND_TT_TEXT       = "While ticked, this text is inserted after /cast in every macro you create or convert, "
                       .. "e.g. %s (the trailing [] falls back to your current target).\n\n"
@@ -74,6 +76,8 @@ T.deDE = {
     TT_HAS_MACRO       = "Makro vorhanden",
     TT_GRAB            = "Klicken oder ziehen: Makro in die Leiste legen",
     COND_LABEL         = "Nach /cast einfügen:",
+    ATK_LABEL          = "Nach /startattack einfügen:",
+    ATK_TT_TEXT        = "Funktioniert wie das Feld darunter, aber für die Zeile /startattack. Mit %s startet der Autoangriff nur bei einem feindlichen, lebenden Ziel.",
     COND_TT_TITLE      = "Zusätzliche Makrobedingungen",
     COND_TT_TEXT       = "Solange der Haken gesetzt ist, wird dieser Text in jedem Makro, das du erstellst oder umwandelst, "
                       .. "hinter /cast eingefügt, z. B. %s (das [] am Ende greift auf dein aktuelles Ziel zurück).\n\n"
@@ -122,6 +126,8 @@ T.frFR = {
     TT_HAS_MACRO       = "Macro existante",
     TT_GRAB            = "Cliquer ou glisser : placer la macro sur la barre",
     COND_LABEL         = "Ajouter après /cast :",
+    ATK_LABEL          = "Ajouter après /startattack :",
+    ATK_TT_TEXT        = "Fonctionne comme le champ du dessous, mais pour la ligne /startattack. Avec %s, l'attaque automatique ne démarre que sur une cible hostile et vivante.",
     COND_TT_TITLE      = "Conditions de macro supplémentaires",
     COND_TT_TEXT       = "Tant que la case est cochée, ce texte est inséré après /cast dans chaque macro que vous créez "
                       .. "ou convertissez, par ex. %s (le [] final se rabat sur votre cible actuelle).\n\n"
@@ -170,6 +176,8 @@ T.esES = {
     TT_HAS_MACRO       = "La macro ya existe",
     TT_GRAB            = "Clic o arrastrar: colocar la macro en la barra",
     COND_LABEL         = "Añadir tras /cast:",
+    ATK_LABEL          = "Añadir tras /startattack:",
+    ATK_TT_TEXT        = "Funciona como el campo de abajo, pero para la línea /startattack. Con %s, el ataque automático solo se inicia sobre un objetivo hostil y vivo.",
     COND_TT_TITLE      = "Condiciones de macro adicionales",
     COND_TT_TEXT       = "Mientras la casilla esté marcada, este texto se inserta después de /cast en cada macro que crees "
                       .. "o conviertas, p. ej. %s (el [] final recurre a tu objetivo actual).\n\n"
@@ -219,6 +227,8 @@ T.itIT = {
     TT_HAS_MACRO       = "Macro già presente",
     TT_GRAB            = "Clicca o trascina: metti la macro nella barra",
     COND_LABEL         = "Aggiungi dopo /cast:",
+    ATK_LABEL          = "Aggiungi dopo /startattack:",
+    ATK_TT_TEXT        = "Funziona come il campo qui sotto, ma per la riga /startattack. Con %s, l'attacco automatico parte solo su un bersaglio ostile e vivo.",
     COND_TT_TITLE      = "Condizioni aggiuntive per le macro",
     COND_TT_TEXT       = "Finché la casella è spuntata, questo testo viene inserito dopo /cast in ogni macro che crei "
                       .. "o converti, ad es. %s (il [] finale ripiega sul tuo bersaglio attuale).\n\n"
@@ -267,6 +277,8 @@ T.ptBR = {
     TT_HAS_MACRO       = "Macro já existe",
     TT_GRAB            = "Clique ou arraste: colocar a macro na barra",
     COND_LABEL         = "Adicionar após /cast:",
+    ATK_LABEL          = "Adicionar após /startattack:",
+    ATK_TT_TEXT        = "Funciona como o campo abaixo, mas para a linha /startattack. Com %s, o ataque automático só começa em um alvo hostil e vivo.",
     COND_TT_TITLE      = "Condições extras de macro",
     COND_TT_TEXT       = "Enquanto a caixa estiver marcada, este texto é inserido depois de /cast em cada macro que você "
                       .. "criar ou converter, ex.: %s (o [] final recorre ao seu alvo atual).\n\n"
@@ -315,6 +327,8 @@ T.ruRU = {
     TT_HAS_MACRO       = "Макрос уже создан",
     TT_GRAB            = "Нажмите или перетащите: поместить макрос на панель",
     COND_LABEL         = "Добавить после /cast:",
+    ATK_LABEL          = "Добавить после /startattack:",
+    ATK_TT_TEXT        = "Работает как поле ниже, но для строки /startattack. С %s автоатака начинается только по враждебной живой цели.",
     COND_TT_TITLE      = "Дополнительные условия макроса",
     COND_TT_TEXT       = "Пока флажок установлен, этот текст вставляется после /cast в каждый макрос, который вы создаёте "
                       .. "или заменяете, например %s (пустые [] в конце означают текущую цель).\n\n"
@@ -364,6 +378,8 @@ T.koKR = {
     TT_HAS_MACRO       = "매크로 있음",
     TT_GRAB            = "클릭 또는 끌기: 매크로를 단축바에 놓기",
     COND_LABEL         = "/cast 뒤에 추가:",
+    ATK_LABEL          = "/startattack 뒤에 추가:",
+    ATK_TT_TEXT        = "아래 입력란과 같지만 /startattack 줄에 적용됩니다. %s 조건을 넣으면 적대적이고 살아 있는 대상에게만 자동 공격을 시작합니다.",
     COND_TT_TITLE      = "추가 매크로 조건",
     COND_TT_TEXT       = "체크되어 있는 동안, 만들거나 변환하는 모든 매크로의 /cast 뒤에 이 문구가 들어갑니다. "
                       .. "예: %s (끝의 []는 현재 대상으로 대체합니다).\n\n"
@@ -413,6 +429,8 @@ T.zhCN = {
     TT_HAS_MACRO       = "宏已存在",
     TT_GRAB            = "点击或拖动：将宏放到动作条上",
     COND_LABEL         = "在 /cast 后添加：",
+    ATK_LABEL          = "在 /startattack 后添加：",
+    ATK_TT_TEXT        = "与下方的输入框相同，但作用于 /startattack 这一行。填入 %s 后，只会对敌对且存活的目标开始自动攻击。",
     COND_TT_TITLE      = "额外的宏条件",
     COND_TT_TEXT       = "勾选时，你创建或转换的每个宏都会在 /cast 后插入这段文字，"
                       .. "例如 %s（末尾的 [] 表示回退到当前目标）。\n\n"
@@ -462,6 +480,8 @@ T.zhTW = {
     TT_HAS_MACRO       = "巨集已存在",
     TT_GRAB            = "點擊或拖曳：將巨集放到快捷列上",
     COND_LABEL         = "在 /cast 後加入：",
+    ATK_LABEL          = "在 /startattack 後加入：",
+    ATK_TT_TEXT        = "與下方的輸入框相同，但作用於 /startattack 這一行。填入 %s 後，只會對敵對且存活的目標開始自動攻擊。",
     COND_TT_TITLE      = "額外的巨集條件",
     COND_TT_TEXT       = "勾選時，你建立或轉換的每個巨集都會在 /cast 後插入這段文字，"
                       .. "例如 %s（結尾的 [] 表示退回目前目標）。\n\n"
