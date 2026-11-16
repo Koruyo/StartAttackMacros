@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+- New field "Add after /cast" in the window: insert your own macro conditions, for example
+  `[@mouseover,harm,nodead][]`, into every macro
+- Tick box next to it to create individual macros with or without the text
+- Changing the text updates the macros that already contain it
+
 ## v1.2.0
 - Localized for every Classic client language: English, Deutsch, Français, Español, Italiano,
   Português (BR), Русский, 한국어, 简体中文, 繁體中文

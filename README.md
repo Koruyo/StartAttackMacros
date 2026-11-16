@@ -31,6 +31,8 @@ macro for every single ability:
   and Auto Attack / Shoot / Auto Shot are skipped.
 - **Macro tracking**: a check mark shows which abilities already have a macro, and a counter
   shows your free macro slots.
+- **Your own conditions**: type something like `[@mouseover,harm,nodead][]` into the window and
+  it is inserted after `/cast` in every macro. Untick the box to create a macro without it.
 - **Minimap button**, **Addon Compartment** entry and a full **options panel**.
 - Lightweight: no libraries, no dependencies.
 - **10 languages**: English, Deutsch, Français, Español, Italiano, Português, Русский, 한국어, 简体中文, 繁體中文
@@ -55,6 +57,23 @@ Or: **Esc → Options → AddOns → StartAttack Macros**, or click the minimap 
 > Macros are named `+SpellName` and use character-specific macro slots first, then general ones.
 > Nothing can be changed in combat (Blizzard restriction).
 
+### Extra macro conditions
+
+The field **Add after /cast** at the bottom of the window takes any macro conditions. With
+`[@mouseover,harm,nodead][]` the macros look like this:
+
+```
+#showtooltip Sinister Strike
+/startattack
+/cast [@mouseover,harm,nodead][] Sinister Strike
+```
+
+- The tick box decides whether the text goes into the macros you create or convert next. Untick
+  it and click an ability to get that one macro without the text.
+- When you change the text, macros that contain the old text are updated. Macros without it, and
+  macros you edited by hand, are left alone.
+- The trailing `[]` makes the macro fall back to your current target.
+
 ## Installation
 
 - **CurseForge app**: search for *StartAttack Macros*.
@@ -72,6 +91,8 @@ Aktionsleisten.
 
 - `/sam` öffnet das Fenster. Fähigkeit anklicken oder ziehen und in die Leiste legen.
 - `/sam convert` ersetzt alle Angriffsfähigkeiten in den Leisten durch ihre Makros.
+- Feld **Nach /cast einfügen** im Fenster: eigene Bedingungen wie `[@mouseover,harm,nodead][]`
+  für alle Makros. Ohne Haken wird das Makro ohne den Text erstellt.
 - Optionen: **Esc → Optionen → AddOns → StartAttack Macros**
 
 ---

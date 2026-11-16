@@ -14,6 +14,15 @@ local L = {
     CONVERT_TT_TEXT    = "Replaces every attack ability on your action bars\nwith its /startattack macro – in the same slot.",
     TT_HAS_MACRO       = "Macro exists",
     TT_GRAB            = "Click or drag: place macro on your action bar",
+    COND_LABEL         = "Add after /cast:",
+    COND_TT_TITLE      = "Extra macro conditions",
+    COND_TT_TEXT       = "While ticked, this text is inserted after /cast in every macro you create or convert, "
+                      .. "e.g. %s (the trailing [] falls back to your current target).\n\n"
+                      .. "Untick it, then click an ability to get its macro without the text. "
+                      .. "Changing the text also updates the macros that already contain it.",
+    MSG_COND_UPDATED   = "|cff40ff40%d|r existing macros updated.",
+    MSG_COND_COMBAT    = "Existing macros will be updated after combat.",
+    MSG_TOO_LONG       = "The macro for %s would be longer than 255 characters – created without the extra conditions.",
 
     MSG_COMBAT_MACRO   = "Macros cannot be created in combat.",
     MSG_COMBAT         = "Not possible in combat.",
@@ -64,6 +73,15 @@ T.deDE = {
     CONVERT_TT_TEXT    = "Ersetzt jede Angriffsfähigkeit in deinen Aktionsleisten\ndurch ihr /startattack-Makro – auf demselben Platz.",
     TT_HAS_MACRO       = "Makro vorhanden",
     TT_GRAB            = "Klicken oder ziehen: Makro in die Leiste legen",
+    COND_LABEL         = "Nach /cast einfügen:",
+    COND_TT_TITLE      = "Zusätzliche Makrobedingungen",
+    COND_TT_TEXT       = "Solange der Haken gesetzt ist, wird dieser Text in jedem Makro, das du erstellst oder umwandelst, "
+                      .. "hinter /cast eingefügt, z. B. %s (das [] am Ende greift auf dein aktuelles Ziel zurück).\n\n"
+                      .. "Haken entfernen und eine Fähigkeit anklicken: Ihr Makro wird ohne den Text erstellt. "
+                      .. "Änderst du den Text, werden auch die Makros aktualisiert, die ihn schon enthalten.",
+    MSG_COND_UPDATED   = "|cff40ff40%d|r vorhandene Makros aktualisiert.",
+    MSG_COND_COMBAT    = "Vorhandene Makros werden nach dem Kampf aktualisiert.",
+    MSG_TOO_LONG       = "Das Makro für %s wäre länger als 255 Zeichen – ohne die Zusatzbedingungen erstellt.",
     MSG_COMBAT_MACRO   = "Im Kampf können keine Makros erstellt werden.",
     MSG_COMBAT         = "Nicht im Kampf möglich.",
     MSG_SLOTS_FULL     = "|cffff4040Alle Makroplätze sind voll|r – lösche ein paar Makros.",
@@ -103,6 +121,15 @@ T.frFR = {
     CONVERT_TT_TEXT    = "Remplace chaque technique offensive de vos barres d'action\npar sa macro /startattack – au même emplacement.",
     TT_HAS_MACRO       = "Macro existante",
     TT_GRAB            = "Cliquer ou glisser : placer la macro sur la barre",
+    COND_LABEL         = "Ajouter après /cast :",
+    COND_TT_TITLE      = "Conditions de macro supplémentaires",
+    COND_TT_TEXT       = "Tant que la case est cochée, ce texte est inséré après /cast dans chaque macro que vous créez "
+                      .. "ou convertissez, par ex. %s (le [] final se rabat sur votre cible actuelle).\n\n"
+                      .. "Décochez la case puis cliquez sur une technique pour obtenir sa macro sans ce texte. "
+                      .. "Modifier le texte met aussi à jour les macros qui le contiennent déjà.",
+    MSG_COND_UPDATED   = "|cff40ff40%d|r macros existantes mises à jour.",
+    MSG_COND_COMBAT    = "Les macros existantes seront mises à jour après le combat.",
+    MSG_TOO_LONG       = "La macro pour %s dépasserait 255 caractères – créée sans les conditions supplémentaires.",
     MSG_COMBAT_MACRO   = "Impossible de créer des macros en combat.",
     MSG_COMBAT         = "Impossible en combat.",
     MSG_SLOTS_FULL     = "|cffff4040Tous les emplacements de macro sont pleins|r – supprimez quelques macros.",
@@ -142,6 +169,15 @@ T.esES = {
     CONVERT_TT_TEXT    = "Sustituye cada habilidad de ataque de tus barras de acción\npor su macro /startattack, en la misma casilla.",
     TT_HAS_MACRO       = "La macro ya existe",
     TT_GRAB            = "Clic o arrastrar: colocar la macro en la barra",
+    COND_LABEL         = "Añadir tras /cast:",
+    COND_TT_TITLE      = "Condiciones de macro adicionales",
+    COND_TT_TEXT       = "Mientras la casilla esté marcada, este texto se inserta después de /cast en cada macro que crees "
+                      .. "o conviertas, p. ej. %s (el [] final recurre a tu objetivo actual).\n\n"
+                      .. "Desmárcala y haz clic en una habilidad para obtener su macro sin el texto. "
+                      .. "Al cambiar el texto también se actualizan las macros que ya lo contienen.",
+    MSG_COND_UPDATED   = "|cff40ff40%d|r macros existentes actualizadas.",
+    MSG_COND_COMBAT    = "Las macros existentes se actualizarán después del combate.",
+    MSG_TOO_LONG       = "La macro de %s superaría los 255 caracteres: creada sin las condiciones adicionales.",
     MSG_COMBAT_MACRO   = "No se pueden crear macros en combate.",
     MSG_COMBAT         = "No es posible en combate.",
     MSG_SLOTS_FULL     = "|cffff4040Todas las casillas de macro están llenas|r: borra algunas macros.",
@@ -182,6 +218,15 @@ T.itIT = {
     CONVERT_TT_TEXT    = "Sostituisce ogni abilità d'attacco nelle barre delle azioni\ncon la sua macro /startattack, nello stesso slot.",
     TT_HAS_MACRO       = "Macro già presente",
     TT_GRAB            = "Clicca o trascina: metti la macro nella barra",
+    COND_LABEL         = "Aggiungi dopo /cast:",
+    COND_TT_TITLE      = "Condizioni aggiuntive per le macro",
+    COND_TT_TEXT       = "Finché la casella è spuntata, questo testo viene inserito dopo /cast in ogni macro che crei "
+                      .. "o converti, ad es. %s (il [] finale ripiega sul tuo bersaglio attuale).\n\n"
+                      .. "Togli la spunta e clicca su un'abilità per ottenere la sua macro senza il testo. "
+                      .. "Modificando il testo vengono aggiornate anche le macro che lo contengono già.",
+    MSG_COND_UPDATED   = "|cff40ff40%d|r macro esistenti aggiornate.",
+    MSG_COND_COMBAT    = "Le macro esistenti verranno aggiornate dopo il combattimento.",
+    MSG_TOO_LONG       = "La macro per %s supererebbe i 255 caratteri: creata senza le condizioni aggiuntive.",
     MSG_COMBAT_MACRO   = "Impossibile creare macro in combattimento.",
     MSG_COMBAT         = "Non possibile in combattimento.",
     MSG_SLOTS_FULL     = "|cffff4040Tutti gli slot delle macro sono pieni|r: elimina qualche macro.",
@@ -221,6 +266,15 @@ T.ptBR = {
     CONVERT_TT_TEXT    = "Substitui cada habilidade de ataque das barras de ações\npela sua macro /startattack, no mesmo espaço.",
     TT_HAS_MACRO       = "Macro já existe",
     TT_GRAB            = "Clique ou arraste: colocar a macro na barra",
+    COND_LABEL         = "Adicionar após /cast:",
+    COND_TT_TITLE      = "Condições extras de macro",
+    COND_TT_TEXT       = "Enquanto a caixa estiver marcada, este texto é inserido depois de /cast em cada macro que você "
+                      .. "criar ou converter, ex.: %s (o [] final recorre ao seu alvo atual).\n\n"
+                      .. "Desmarque e clique em uma habilidade para obter a macro sem o texto. "
+                      .. "Alterar o texto também atualiza as macros que já o contêm.",
+    MSG_COND_UPDATED   = "|cff40ff40%d|r macros existentes atualizadas.",
+    MSG_COND_COMBAT    = "As macros existentes serão atualizadas após o combate.",
+    MSG_TOO_LONG       = "A macro de %s passaria de 255 caracteres: criada sem as condições extras.",
     MSG_COMBAT_MACRO   = "Não é possível criar macros em combate.",
     MSG_COMBAT         = "Não é possível em combate.",
     MSG_SLOTS_FULL     = "|cffff4040Todos os espaços de macro estão cheios|r: apague algumas macros.",
@@ -260,6 +314,15 @@ T.ruRU = {
     CONVERT_TT_TEXT    = "Заменяет каждую атакующую способность на панелях команд\nеё макросом /startattack – в той же ячейке.",
     TT_HAS_MACRO       = "Макрос уже создан",
     TT_GRAB            = "Нажмите или перетащите: поместить макрос на панель",
+    COND_LABEL         = "Добавить после /cast:",
+    COND_TT_TITLE      = "Дополнительные условия макроса",
+    COND_TT_TEXT       = "Пока флажок установлен, этот текст вставляется после /cast в каждый макрос, который вы создаёте "
+                      .. "или заменяете, например %s (пустые [] в конце означают текущую цель).\n\n"
+                      .. "Снимите флажок и нажмите на способность, чтобы получить её макрос без этого текста. "
+                      .. "При изменении текста обновляются и макросы, которые его уже содержат.",
+    MSG_COND_UPDATED   = "Существующих макросов обновлено: |cff40ff40%d|r.",
+    MSG_COND_COMBAT    = "Существующие макросы будут обновлены после боя.",
+    MSG_TOO_LONG       = "Макрос для «%s» превысил бы 255 символов – создан без дополнительных условий.",
     MSG_COMBAT_MACRO   = "Нельзя создавать макросы в бою.",
     MSG_COMBAT         = "Недоступно в бою.",
     MSG_SLOTS_FULL     = "|cffff4040Все ячейки макросов заняты|r – удалите несколько макросов.",
@@ -300,6 +363,15 @@ T.koKR = {
     CONVERT_TT_TEXT    = "행동 단축바의 모든 공격 기술을\n같은 칸의 /startattack 매크로로 교체합니다.",
     TT_HAS_MACRO       = "매크로 있음",
     TT_GRAB            = "클릭 또는 끌기: 매크로를 단축바에 놓기",
+    COND_LABEL         = "/cast 뒤에 추가:",
+    COND_TT_TITLE      = "추가 매크로 조건",
+    COND_TT_TEXT       = "체크되어 있는 동안, 만들거나 변환하는 모든 매크로의 /cast 뒤에 이 문구가 들어갑니다. "
+                      .. "예: %s (끝의 []는 현재 대상으로 대체합니다).\n\n"
+                      .. "체크를 해제하고 기술을 클릭하면 이 문구 없이 매크로가 만들어집니다. "
+                      .. "문구를 바꾸면 이미 이 문구가 들어 있는 매크로도 함께 갱신됩니다.",
+    MSG_COND_UPDATED   = "기존 매크로 |cff40ff40%d|r개를 갱신했습니다.",
+    MSG_COND_COMBAT    = "기존 매크로는 전투가 끝난 뒤 갱신됩니다.",
+    MSG_TOO_LONG       = "%s 매크로가 255자를 넘어 추가 조건 없이 만들었습니다.",
     MSG_COMBAT_MACRO   = "전투 중에는 매크로를 만들 수 없습니다.",
     MSG_COMBAT         = "전투 중에는 사용할 수 없습니다.",
     MSG_SLOTS_FULL     = "|cffff4040매크로 칸이 모두 찼습니다|r – 매크로를 몇 개 삭제하세요.",
@@ -340,6 +412,15 @@ T.zhCN = {
     CONVERT_TT_TEXT    = "将动作条上的每个攻击技能\n替换为对应的 /startattack 宏（位置不变）。",
     TT_HAS_MACRO       = "宏已存在",
     TT_GRAB            = "点击或拖动：将宏放到动作条上",
+    COND_LABEL         = "在 /cast 后添加：",
+    COND_TT_TITLE      = "额外的宏条件",
+    COND_TT_TEXT       = "勾选时，你创建或转换的每个宏都会在 /cast 后插入这段文字，"
+                      .. "例如 %s（末尾的 [] 表示回退到当前目标）。\n\n"
+                      .. "取消勾选后再点击技能，即可得到不含这段文字的宏。"
+                      .. "修改文字时，已包含它的宏也会一并更新。",
+    MSG_COND_UPDATED   = "已更新 |cff40ff40%d|r 个现有的宏。",
+    MSG_COND_COMBAT    = "现有的宏将在战斗结束后更新。",
+    MSG_TOO_LONG       = "%s 的宏会超过 255 个字符，已省略额外条件。",
     MSG_COMBAT_MACRO   = "战斗中无法创建宏。",
     MSG_COMBAT         = "战斗中无法进行。",
     MSG_SLOTS_FULL     = "|cffff4040宏位置已满|r，请删除一些宏。",
@@ -380,6 +461,15 @@ T.zhTW = {
     CONVERT_TT_TEXT    = "將快捷列上的每個攻擊技能\n替換為對應的 /startattack 巨集（位置不變）。",
     TT_HAS_MACRO       = "巨集已存在",
     TT_GRAB            = "點擊或拖曳：將巨集放到快捷列上",
+    COND_LABEL         = "在 /cast 後加入：",
+    COND_TT_TITLE      = "額外的巨集條件",
+    COND_TT_TEXT       = "勾選時，你建立或轉換的每個巨集都會在 /cast 後插入這段文字，"
+                      .. "例如 %s（結尾的 [] 表示退回目前目標）。\n\n"
+                      .. "取消勾選後再點擊技能，即可得到不含這段文字的巨集。"
+                      .. "修改文字時，已包含它的巨集也會一併更新。",
+    MSG_COND_UPDATED   = "已更新 |cff40ff40%d|r 個現有的巨集。",
+    MSG_COND_COMBAT    = "現有的巨集將在戰鬥結束後更新。",
+    MSG_TOO_LONG       = "%s 的巨集會超過 255 個字元，已省略額外條件。",
     MSG_COMBAT_MACRO   = "戰鬥中無法建立巨集。",
     MSG_COMBAT         = "戰鬥中無法進行。",
     MSG_SLOTS_FULL     = "|cffff4040巨集欄位已滿|r，請刪除一些巨集。",
