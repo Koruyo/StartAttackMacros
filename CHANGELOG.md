@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.3.0
 - New fields "Add after /startattack" and "Add after /cast" in the window: insert your own
   macro conditions, for example `[harm,nodead]` and `[@mouseover,harm,nodead][]`, into every macro
 - Tick box next to each field to create individual macros with or without the text
