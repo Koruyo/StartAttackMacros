@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## v1.4.0
+- Fixed: long spell names with non-Latin letters (Russian, Korean, Chinese, also umlauts and
+  accents) were cut in the middle of a letter. The broken macro name could make the server drop
+  macros on the next login. Names are now cut at a full letter, and macros that already have a
+  broken name are renamed automatically
 - New field "Lines before /startattack": add your own macro lines, for example `/petattack`,
   between `#showtooltip` and `/startattack`. It has its own tick box and is saved per character
 - Broker support: the addon shows up as a launcher in Titan Panel, ChocolateBar and other

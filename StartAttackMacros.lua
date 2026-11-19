@@ -126,7 +126,23 @@ end
 ------------------------------------------------------------------------
 -- Makros
 ------------------------------------------------------------------------
+-- Kürzt auf höchstens MAX_NAME Bytes, aber nie mitten in einem UTF-8-Zeichen.
+-- (Kyrillisch = 2 Bytes, Koreanisch/Chinesisch = 3 Bytes je Zeichen. Ein halbes Zeichen
+-- ergibt einen ungültigen Namen, und der Server verwirft dann beim Speichern Makros.)
 local function MacroName(spell)
+    local name = PREFIX .. spell
+    if #name <= MAX_NAME then return name end
+    local cut = MAX_NAME
+    while cut > 0 do
+        local b = name:byte(cut + 1)
+        if b < 0x80 or b >= 0xC0 then break end   -- nächstes Byte beginnt ein neues Zeichen
+        cut = cut - 1
+    end
+    return name:sub(1, cut)
+end
+
+-- Name, wie ihn Versionen bis 1.3.1 gebildet haben (stur nach Bytes abgeschnitten)
+local function LegacyMacroName(spell)
     return (PREFIX .. spell):sub(1, MAX_NAME)
 end
 
@@ -239,6 +255,47 @@ local function ForEachAddonMacro(fn)
     local firstChar = (MAX_ACCOUNT_MACROS or 120) + 1
     for i = 1, numGlobal do visit(i) end
     for i = firstChar, firstChar + numChar - 1 do visit(i) end
+end
+
+-- Benennt Makros um, deren Name von einer älteren Version mitten in einem Zeichen
+-- abgeschnitten wurde. Der Platz in der Aktionsleiste bleibt dabei erhalten.
+local repairing = false
+
+local function FindBrokenName()
+    local numGlobal, numChar = GetNumMacros()
+    local firstChar = (MAX_ACCOUNT_MACROS or 120) + 1
+    local function broken(idx)
+        local name = GetMacroInfo(idx)
+        local body = name and name:sub(1, #PREFIX) == PREFIX and GetMacroBody(idx)
+        local spell = body and ParseBody(body)
+        if not spell or name ~= LegacyMacroName(spell) then return end
+        local fixed = MacroName(spell)
+        local taken = GetMacroIndexByName(fixed)
+        if fixed ~= name and (not taken or taken == 0) then return fixed end
+    end
+    for i = 1, numGlobal do
+        local fixed = broken(i)
+        if fixed then return i, fixed end
+    end
+    for i = firstChar, firstChar + numChar - 1 do
+        local fixed = broken(i)
+        if fixed then return i, fixed end
+    end
+end
+
+local function RepairMacroNames()
+    if repairing or InCombatLockdown() then return end
+    repairing = true
+    local count = 0
+    -- Nach jedem Umbenennen neu suchen: Makros sind nach Namen sortiert, die Indizes verschieben sich
+    for _ = 1, 150 do
+        local idx, fixed = FindBrokenName()
+        if not idx then break end
+        EditMacro(idx, fixed)
+        count = count + 1
+    end
+    repairing = false
+    if count > 0 then Print(L.MSG_NAMES_FIXED:format(count)) end
 end
 
 -- Nach einer Textänderung: Makros, die den alten Text enthalten, bekommen den neuen.
@@ -952,12 +1009,15 @@ ev:SetScript("OnEvent", function(self, event, arg1)
     elseif event == "PLAYER_LOGIN" then
         loggedIn = true   -- jetzt sind alle Addons geladen
         if RegisterBroker() then self:UnregisterEvent("ADDON_LOADED") end
+        RepairMacroNames()
     elseif event == "PLAYER_REGEN_ENABLED" then
+        RepairMacroNames()
         for key, old in pairs(pending) do
             pending[key] = nil
             UpdateExistingMacros(key, old)
         end
-    elseif frame and frame:IsShown() then
-        Refresh()
+    else
+        if event == "UPDATE_MACROS" and db then RepairMacroNames() end
+        if frame and frame:IsShown() then Refresh() end
     end
 end)
