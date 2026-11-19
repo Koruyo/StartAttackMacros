@@ -5,7 +5,8 @@
 --   /startattack
 --   /cast Zauber
 -- (optional mit eigenen Bedingungen hinter /startattack und /cast,
---  z. B. [harm,nodead] bzw. [@mouseover,harm,nodead][])
+--  z. B. [harm,nodead] bzw. [@mouseover,harm,nodead][], und mit eigenen
+--  Zeilen zwischen #showtooltip und /startattack, z. B. /petattack)
 -- und kann sie per Klick auf den Cursor legen oder direkt in die Leisten setzen.
 
 local ADDON_NAME, ns = ...
@@ -20,6 +21,8 @@ local MACRO_ICON = "INV_MISC_QUESTIONMARK" -- #showtooltip zeigt automatisch das
 local MAX_BODY = 255        -- maximale Makrolänge
 local COND_EXAMPLE = "[@mouseover,harm,nodead][]"
 local ATK_EXAMPLE = "[harm,nodead]"
+local PRE_EXAMPLE = "/petattack"
+local BROKER_NAME = "StartAttack Macros"
 
 -- Fähigkeiten, die selbst schon Autoangriff/Fernkampf sind
 local SKIP = { [6603] = true, [75] = true, [5019] = true, [3018] = true }
@@ -39,7 +42,16 @@ local DEFAULTS = {
     attackConditions = "",        -- dasselbe für die Zeile /startattack
     useAttackConditions = true,
 }
-local db
+-- Pro Charakter gespeichert: /petattack & Co. passen nur zu bestimmten Klassen
+local CHAR_DEFAULTS = {
+    extraLines = "",              -- Zeilen zwischen #showtooltip und /startattack
+    useExtraLines = true,
+}
+local db, cdb
+
+local function Store(key)
+    return CHAR_DEFAULTS[key] ~= nil and cdb or db
+end
 
 local function Print(msg)
     DEFAULT_CHAT_FRAME:AddMessage("|cffff8c1aStartAttack|r: " .. msg)
@@ -122,37 +134,56 @@ local function CleanConditions(text)
     return ((text or ""):gsub("%s+", " "):match("^ ?(.-) ?$"))
 end
 
--- cond = Text hinter /cast, atk = Text hinter /startattack ("" = keiner)
-local function BuildBody(spell, cond, atk)
+-- Eigene Makrozeilen: je Zeile getrimmt, Leerzeilen entfernt
+local function CleanLines(text)
+    local out = {}
+    for line in (text or ""):gmatch("[^\r\n]+") do
+        local trimmed = line:match("^%s*(.-)%s*$")
+        if trimmed ~= "" then out[#out + 1] = trimmed end
+    end
+    return table.concat(out, "\n")
+end
+
+-- cond = Text hinter /cast, atk = Text hinter /startattack,
+-- extra = eigene Zeilen vor /startattack ("" = nichts)
+local function BuildBody(spell, cond, atk, extra)
     return "#showtooltip " .. spell
+        .. (extra ~= "" and "\n" .. extra or "")
         .. "\n/startattack" .. (atk ~= "" and " " .. atk or "")
         .. "\n/cast " .. (cond ~= "" and cond .. " " or "") .. spell
 end
 
--- Zerlegt ein vom Addon erzeugtes Makro wieder in Zauber und die beiden Texte
+-- Zerlegt ein vom Addon erzeugtes Makro wieder in Zauber, die beiden Texte und die Zusatzzeilen:
+-- erste Zeile #showtooltip, letzte Zeile /cast, davor /startattack, alles dazwischen sind Zusatzzeilen
 -- (tolerant gegenüber Handarbeit: Leerzeichen am Ende, fehlendes Leerzeichen vor dem Zauber)
 local function ParseBody(body)
-    body = body:gsub("%s+$", "")
-    local spell, atk, cast = body:match("^#showtooltip ([^\n]+)\n/startattack([^\n]*)\n/cast ([^\n]+)$")
-    if not spell or cast:sub(-#spell) ~= spell then return end
+    local lines = {}
+    for line in (body:gsub("%s+$", "") .. "\n"):gmatch("([^\n]*)\n") do lines[#lines + 1] = line end
+    local n = #lines
+    if n < 3 then return end
+    local spell = lines[1]:match("^#showtooltip (.+)$")
+    local atk = lines[n - 1]:match("^/startattack(.*)$")
+    local cast = lines[n]:match("^/cast (.+)$")
+    if not spell or not atk or not cast or cast:sub(-#spell) ~= spell then return end
     local cond = cast:sub(1, -#spell - 1)
     if cond ~= "" and not cond:find("[%s%]]$") then return end
     if atk ~= "" and atk:sub(1, 1) ~= " " then return end
-    return spell, CleanConditions(atk), CleanConditions(cond)
+    return spell, CleanConditions(atk), CleanConditions(cond), CleanLines(table.concat(lines, "\n", 2, n - 2))
 end
 
--- Ohne "cond"/"atk" gilt die aktuelle Einstellung (Text + Haken im Fenster).
+-- Ohne "cond"/"atk"/"extra" gilt die aktuelle Einstellung (Text + Haken im Fenster).
 -- Zweiter Rückgabewert: true, wenn die Texte wegen der Längengrenze weggelassen wurden.
-local function ComputeBody(spell, cond, atk)
+local function ComputeBody(spell, cond, atk, extra)
     cond = cond or (db.useConditions and db.conditions) or ""
     atk = atk or (db.useAttackConditions and db.attackConditions) or ""
-    local body = BuildBody(spell, cond, atk)
-    if #body > MAX_BODY then return BuildBody(spell, "", ""), true end
+    extra = extra or (cdb.useExtraLines and cdb.extraLines) or ""
+    local body = BuildBody(spell, cond, atk, extra)
+    if #body > MAX_BODY then return BuildBody(spell, "", "", ""), true end
     return body, false
 end
 
-local function MacroBody(spell, cond, atk)
-    local body, tooLong = ComputeBody(spell, cond, atk)
+local function MacroBody(spell, cond, atk, extra)
+    local body, tooLong = ComputeBody(spell, cond, atk, extra)
     if tooLong then Print(L.MSG_TOO_LONG:format(spell)) end
     return body
 end
@@ -195,14 +226,14 @@ local function EnsureMacro(spell)
     return name
 end
 
--- Ruft fn(idx, body, spell, atk, cond) für jedes vom Addon erzeugte Makro auf
+-- Ruft fn(idx, body, spell, atk, cond, extra) für jedes vom Addon erzeugte Makro auf
 local function ForEachAddonMacro(fn)
     local function visit(idx)
         local name = GetMacroInfo(idx)
         local body = name and name:sub(1, #PREFIX) == PREFIX and GetMacroBody(idx)
         if not body then return end
-        local spell, atk, cond = ParseBody(body)
-        if spell and MacroName(spell) == name then fn(idx, body, spell, atk, cond) end
+        local spell, atk, cond, extra = ParseBody(body)
+        if spell and MacroName(spell) == name then fn(idx, body, spell, atk, cond, extra) end
     end
     local numGlobal, numChar = GetNumMacros()
     local firstChar = (MAX_ACCOUNT_MACROS or 120) + 1
@@ -212,11 +243,12 @@ end
 
 -- Nach einer Textänderung: Makros, die den alten Text enthalten, bekommen den neuen.
 -- Makros ohne den Text (oder von Hand geänderte) bleiben unberührt.
--- key = "conditions" (hinter /cast) oder "attackConditions" (hinter /startattack)
+-- key = "conditions" (hinter /cast), "attackConditions" (hinter /startattack)
+-- oder "extraLines" (Zeilen vor /startattack)
 local pending = {}
 
 local function UpdateExistingMacros(key, old)
-    local new = db[key]
+    local new = Store(key)[key]
     if old == "" or old == new then return end
     if InCombatLockdown() then
         pending[key] = pending[key] or old
@@ -224,15 +256,17 @@ local function UpdateExistingMacros(key, old)
         return
     end
     local count = 0
-    ForEachAddonMacro(function(idx, _, spell, atk, cond)
+    ForEachAddonMacro(function(idx, _, spell, atk, cond, extra)
         if key == "conditions" and cond == old then
             cond = new
         elseif key == "attackConditions" and atk == old then
             atk = new
+        elseif key == "extraLines" and extra == old then
+            extra = new
         else
             return
         end
-        EditMacro(idx, nil, nil, MacroBody(spell, cond, atk))
+        EditMacro(idx, nil, nil, MacroBody(spell, cond, atk, extra))
         count = count + 1
     end)
     if count > 0 then Print(L.MSG_COND_UPDATED:format(count)) end
@@ -254,8 +288,9 @@ local function RefreshAllMacros()
 end
 
 local function SetConditions(key, text)
-    local old = db[key]
-    db[key] = CleanConditions(text)
+    local store = Store(key)
+    local old = store[key]
+    store[key] = (key == "extraLines" and CleanLines or CleanConditions)(text)
     UpdateExistingMacros(key, old)
 end
 
@@ -327,6 +362,15 @@ end
 ------------------------------------------------------------------------
 local frame, scrollChild, buttons, showAll = nil, nil, {}, false
 local COLS, SIZE, GAP = 8, 38, 8
+local EXTRA_H = 44          -- Höhe des mehrzeiligen Felds für eigene Makrozeilen
+local fieldBoxes = {}
+
+-- Übernimmt ein Textfeld, in dem gerade noch getippt wird (löst OnEditFocusLost aus)
+local function CommitFields()
+    for _, box in ipairs(fieldBoxes) do
+        if box:HasFocus() then box:ClearFocus() end
+    end
+end
 
 local function UpdateFooter()
     if not frame then return end
@@ -372,6 +416,7 @@ local function CreateSpellButton(i)
     b:RegisterForDrag("LeftButton")
 
     local function grab(self)
+        CommitFields()
         PickupSpellMacro(self.spell)
         UpdateCheck(self)
         UpdateFooter()
@@ -420,7 +465,7 @@ end
 
 local function CreateMainFrame()
     frame = CreateFrame("Frame", "StartAttackMacrosFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(COLS * (SIZE + GAP) + 54, 512)
+    frame:SetSize(COLS * (SIZE + GAP) + 54, 564)
     frame:SetPoint("CENTER")
     frame:SetMovable(true)
     frame:SetClampedToScreen(true)
@@ -428,6 +473,7 @@ local function CreateMainFrame()
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", frame.StartMoving)
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+    frame:SetScript("OnMouseDown", CommitFields)   -- Klick ins Fenster übernimmt die Textfelder
     frame:SetFrameStrata("DIALOG")
     frame:SetToplevel(true)
     frame:Hide()
@@ -460,7 +506,7 @@ local function CreateMainFrame()
     -- Zauberliste
     local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 12, -72)
-    scroll:SetPoint("BOTTOMRIGHT", -32, 148)
+    scroll:SetPoint("BOTTOMRIGHT", -32, 200)
     scrollChild = CreateFrame("Frame", nil, scroll)
     scrollChild:SetSize(COLS * (SIZE + GAP) + 6, 1)
     scroll:SetScrollChild(scrollChild)
@@ -472,64 +518,117 @@ local function CreateMainFrame()
     local sep2 = frame:CreateTexture(nil, "ARTWORK")
     sep2:SetColorTexture(1, 1, 1, 0.12)
     sep2:SetHeight(1)
-    sep2:SetPoint("BOTTOMLEFT", 12, 142)
-    sep2:SetPoint("BOTTOMRIGHT", -12, 142)
+    sep2:SetPoint("BOTTOMLEFT", 12, 194)
+    sep2:SetPoint("BOTTOMRIGHT", -12, 194)
 
     -- Unterer Bereich
-    -- Eigene Bedingungen: je Makrozeile ein Haken (einfügen ja/nein) + Textfeld
+    -- Eigene Texte in der Reihenfolge des Makros: je ein Haken (einfügen ja/nein) + Textfeld
     local rows = {
+        { y = 140, label = L.PRE_LABEL, key = "extraLines", use = "useExtraLines",
+          title = L.PRE_TT_TITLE, tip = L.PRE_TT_TEXT, example = PRE_EXAMPLE, multi = true },
         { y = 114, label = L.ATK_LABEL, key = "attackConditions", use = "useAttackConditions",
-          tip = L.ATK_TT_TEXT, example = ATK_EXAMPLE },
+          title = L.COND_TT_TITLE, tip = L.ATK_TT_TEXT, example = ATK_EXAMPLE },
         { y = 88, label = L.COND_LABEL, key = "conditions", use = "useConditions",
-          tip = L.COND_TT_TEXT, example = COND_EXAMPLE },
+          title = L.COND_TT_TITLE, tip = L.COND_TT_TEXT, example = COND_EXAMPLE },
     }
     local labelWidth = 0
     for _, r in ipairs(rows) do
+        local store = Store(r.use)
         r.check = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
-        r.check:SetPoint("BOTTOMLEFT", 12, r.y)
+        r.check:SetPoint("BOTTOMLEFT", 12, r.multi and r.y + EXTRA_H - 24 or r.y)   -- oben am Feld
         r.check:SetSize(24, 24)
-        r.check:SetChecked(db[r.use])
+        r.check:SetChecked(store[r.use])
         local text = r.check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         text:SetPoint("LEFT", r.check, "RIGHT", 2, 1)
         text:SetText(r.label)
         labelWidth = math.max(labelWidth, text:GetStringWidth())
         r.check:SetScript("OnClick", function(self)
-            db[r.use] = self:GetChecked() and true or false
+            CommitFields()
+            store[r.use] = self:GetChecked() and true or false
             Refresh()   -- Markierungen: welche Makros sind noch aktuell?
         end)
     end
 
+    local fieldWidth = math.max(120, frame:GetWidth() - 68 - labelWidth)
+    local function Preview()
+        return BuildBody(L.CMD_SPELL, CleanConditions(rows[3].box:GetText()),
+            CleanConditions(rows[2].box:GetText()), CleanLines(rows[1].box:GetText()))
+    end
+
     for _, r in ipairs(rows) do
-        local box = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+        local store = Store(r.key)
+        local box, area
+        if r.multi then
+            -- Mehrzeilig: eigener Rahmen + ScrollFrame, damit lange Eingaben nicht überlaufen
+            local holder = CreateFrame("Frame", nil, frame)
+            holder:SetPoint("TOPLEFT", r.check, "TOPRIGHT", labelWidth + 9, 0)
+            holder:SetSize(fieldWidth + 5, EXTRA_H)
+            local edge = holder:CreateTexture(nil, "BACKGROUND")
+            edge:SetAllPoints()
+            edge:SetColorTexture(0.5, 0.5, 0.5, 0.7)
+            local bg = holder:CreateTexture(nil, "BORDER")
+            bg:SetPoint("TOPLEFT", 1, -1)
+            bg:SetPoint("BOTTOMRIGHT", -1, 1)
+            bg:SetColorTexture(0.03, 0.03, 0.03, 1)
+
+            area = CreateFrame("ScrollFrame", nil, holder)
+            area:SetPoint("TOPLEFT", 5, -4)
+            area:SetPoint("BOTTOMRIGHT", -5, 4)
+            box = CreateFrame("EditBox", nil, area)
+            box:SetMultiLine(true)
+            box:SetFontObject(ChatFontNormal)
+            box:SetWidth(fieldWidth - 5)
+            box:SetHeight(EXTRA_H - 8)
+            area:SetScrollChild(box)
+            area:EnableMouse(true)
+            area:SetScript("OnMouseDown", function() box:SetFocus() end)
+            area:EnableMouseWheel(true)
+            area:SetScript("OnMouseWheel", function(self, delta)
+                local max = self:GetVerticalScrollRange() or 0
+                self:SetVerticalScroll(math.max(0, math.min(max, self:GetVerticalScroll() - delta * 14)))
+            end)
+            -- Sichtbaren Ausschnitt der Schreibmarke folgen lassen
+            box:SetScript("OnCursorChanged", function(_, _, y, _, h)
+                local top, view = area:GetVerticalScroll(), area:GetHeight()
+                y = -y
+                if y < top then
+                    area:SetVerticalScroll(y)
+                elseif y + h > top + view then
+                    area:SetVerticalScroll(y + h - view)
+                end
+            end)
+        else
+            box = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+            box:SetPoint("LEFT", r.check, "RIGHT", labelWidth + 14, 0)   -- alle Felder bündig
+            box:SetSize(fieldWidth, 20)
+            box:SetScript("OnEnterPressed", box.ClearFocus)
+        end
         r.box = box
-        box:SetPoint("LEFT", r.check, "RIGHT", labelWidth + 14, 0)   -- beide Felder bündig
-        box:SetSize(math.max(120, frame:GetWidth() - 68 - labelWidth), 20)
+        fieldBoxes[#fieldBoxes + 1] = box
         box:SetAutoFocus(false)
-        box:SetMaxLetters(120)
-        box:SetText(db[r.key])
+        box:SetMaxLetters(r.multi and 200 or 120)
+        box:SetText(store[r.key])
         box:SetCursorPosition(0)
-        box:SetScript("OnEnterPressed", box.ClearFocus)
         box:SetScript("OnEscapePressed", function(self)
-            self:SetText(db[r.key])
+            self:SetText(store[r.key])
             self:ClearFocus()
         end)
         box:HookScript("OnEditFocusLost", function(self)
             SetConditions(r.key, self:GetText())
             Refresh()
-            self:SetText(db[r.key])
+            self:SetText(store[r.key])
             self:SetCursorPosition(0)
         end)
 
         local function tooltip(self)
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText(L.COND_TT_TITLE)
+            GameTooltip:SetText(r.title)
             GameTooltip:AddLine(r.tip:format("|cffff8c1a" .. r.example .. "|r"), 1, 1, 1, true)
             GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(BuildBody(L.CMD_SPELL, CleanConditions(rows[2].box:GetText()),
-                CleanConditions(rows[1].box:GetText())), 0.6, 0.6, 0.6)
+            GameTooltip:AddLine(Preview(), 0.6, 0.6, 0.6)
             GameTooltip:Show()
         end
-        for _, w in ipairs({ r.check, box }) do
+        for _, w in ipairs({ r.check, box, area }) do
             w:SetScript("OnEnter", tooltip)
             w:SetScript("OnLeave", function() GameTooltip:Hide() end)
         end
@@ -554,7 +653,7 @@ local function CreateMainFrame()
     convert:SetPoint("BOTTOMRIGHT", -12, 12)
     convert:SetHeight(26)
     convert:SetText(L.CONVERT_BUTTON)
-    convert:SetScript("OnClick", function() ConvertActionBars(false); Refresh() end)
+    convert:SetScript("OnClick", function() CommitFields(); ConvertActionBars(false); Refresh() end)
     convert:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText(L.CONVERT_TT_TITLE)
@@ -762,6 +861,35 @@ function StartAttackMacros_OnCompartmentLeave()
 end
 
 ------------------------------------------------------------------------
+-- Broker-Eintrag (Titan Panel, ChocolateBar, Bazooka, ElvUI-Datentexte ...)
+-- Nur wenn LibDataBroker schon durch ein anderes Addon geladen ist;
+-- das Addon selbst bringt weiterhin keine Bibliotheken mit.
+------------------------------------------------------------------------
+local function RegisterBroker()
+    local ldb = LibStub and LibStub:GetLibrary("LibDataBroker-1.1", true)
+    if not ldb then return false end
+    if not ldb:GetDataObjectByName(BROKER_NAME) then
+        ldb:NewDataObject(BROKER_NAME, {
+            type = "launcher",
+            label = BROKER_NAME,
+            text = BROKER_NAME,
+            icon = ADDON_ICON,
+            tocname = ADDON_NAME,
+            OnClick = function(_, button)
+                if button == "RightButton" then OpenOptions() else Toggle() end
+            end,
+            OnTooltipShow = function(tt)
+                tt:AddLine(TITLE)
+                tt:AddLine(" ")
+                tt:AddDoubleLine("|cffffffff" .. L.MM_LEFT .. "|r", L.MM_OPEN, nil, nil, nil, 1, 0.82, 0)
+                tt:AddDoubleLine("|cffffffff" .. L.MM_RIGHT .. "|r", L.MM_OPTIONS, nil, nil, nil, 1, 0.82, 0)
+            end,
+        })
+    end
+    return true
+end
+
+------------------------------------------------------------------------
 -- Slash-Befehle
 ------------------------------------------------------------------------
 SLASH_STARTATTACKMACROS1 = "/sam"
@@ -790,13 +918,19 @@ end
 -- Start
 ------------------------------------------------------------------------
 local ev = CreateFrame("Frame")
+local loggedIn = false
 ev:RegisterEvent("ADDON_LOADED")
+ev:RegisterEvent("PLAYER_LOGIN")
 ev:RegisterEvent("SPELLS_CHANGED")
 ev:RegisterEvent("UPDATE_MACROS")
 ev:RegisterEvent("PLAYER_REGEN_ENABLED")
 ev:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" then
-        if arg1 ~= ADDON_NAME then return end
+        if arg1 ~= ADDON_NAME then
+            -- Broker-Bibliothek kam erst mit einem nachgeladenen Addon
+            if loggedIn and RegisterBroker() then self:UnregisterEvent("ADDON_LOADED") end
+            return
+        end
         StartAttackMacrosDB = StartAttackMacrosDB or {}
         db = StartAttackMacrosDB
         db.minimap = db.minimap or {}
@@ -809,9 +943,15 @@ ev:SetScript("OnEvent", function(self, event, arg1)
         for _, k in ipairs({ "useConditions", "useAttackConditions" }) do
             if db[k] == nil then db[k] = DEFAULTS[k] end
         end
+        StartAttackMacrosCharDB = StartAttackMacrosCharDB or {}
+        cdb = StartAttackMacrosCharDB
+        if type(cdb.extraLines) ~= "string" then cdb.extraLines = CHAR_DEFAULTS.extraLines end
+        if cdb.useExtraLines == nil then cdb.useExtraLines = CHAR_DEFAULTS.useExtraLines end
         CreateMinimapButton()
         CreateOptionsPanel()
-        self:UnregisterEvent("ADDON_LOADED")
+    elseif event == "PLAYER_LOGIN" then
+        loggedIn = true   -- jetzt sind alle Addons geladen
+        if RegisterBroker() then self:UnregisterEvent("ADDON_LOADED") end
     elseif event == "PLAYER_REGEN_ENABLED" then
         for key, old in pairs(pending) do
             pending[key] = nil

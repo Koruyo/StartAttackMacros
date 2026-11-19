@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+- New field "Lines before /startattack": add your own macro lines, for example `/petattack`,
+  between `#showtooltip` and `/startattack`. It has its own tick box and is saved per character
+- Broker support: the addon shows up as a launcher in Titan Panel, ChocolateBar and other
+  LibDataBroker displays (left-click opens the window, right-click the options)
+- A text you are still typing is now applied when you click an ability, a tick box or the
+  convert button
+
 ## v1.3.1
 - "Convert all attacks on your action bars" now also updates the macros the addon already
   created, so they pick up the current text fields and tick boxes

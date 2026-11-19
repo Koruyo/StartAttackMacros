@@ -35,7 +35,11 @@ macro for every single ability:
 - **Your own conditions**: type something like `[@mouseover,harm,nodead][]` into the window and
   it is inserted after `/cast` in every macro. A second field does the same for `/startattack`,
   for example `[harm,nodead]`. Untick a box to create a macro without that text.
+- **Your own lines**: add commands such as `/petattack` between `#showtooltip` and `/startattack`,
+  saved per character.
 - **Minimap button**, **Addon Compartment** entry and a full **options panel**.
+- **Broker displays**: shows up as a launcher in Titan Panel, ChocolateBar and other
+  LibDataBroker displays.
 - Lightweight: no libraries, no dependencies.
 - **10 languages**: English, Deutsch, Français, Español, Italiano, Português, Русский, 한국어, 简体中文, 繁體中文
 
@@ -82,6 +86,26 @@ this:
 - `/startattack [harm,nodead]` only starts auto-attack on a hostile, living target. It no longer
   picks the nearest enemy when you have no target.
 
+### Extra macro lines
+
+The field **Lines before /startattack** takes whole macro lines, one command per line. They go
+between `#showtooltip` and `/startattack`:
+
+```
+#showtooltip Shadow Bolt
+/petattack
+/startattack
+/cast Shadow Bolt
+```
+
+- Any slash command works, including those of other addons.
+- Enter starts a new line. Click anywhere in the window to apply what you typed.
+- The lines are saved per character, because `/petattack` only makes sense on some classes. The
+  two condition fields stay account-wide.
+- Tick box, yellow question mark and updating work the same way as for the condition fields.
+- A macro can hold 255 characters. If your texts make it longer, the macro is created without
+  them and you get a message in chat.
+
 ## Installation
 
 - **CurseForge app**: search for *StartAttack Macros*.
@@ -102,6 +126,9 @@ Aktionsleisten.
 - Felder **Nach /startattack einfügen** und **Nach /cast einfügen** im Fenster: eigene
   Bedingungen wie `[harm,nodead]` bzw. `[@mouseover,harm,nodead][]` für alle Makros. Ohne Haken
   wird das Makro ohne den jeweiligen Text erstellt.
+- Feld **Zeilen vor /startattack**: eigene Makrozeilen wie `/petattack` zwischen `#showtooltip`
+  und `/startattack`, pro Charakter gespeichert.
+- Erscheint als Eintrag in Broker-Leisten wie Titan Panel oder ChocolateBar (LibDataBroker).
 - Grüner Haken = Makro ist aktuell, gelbes Fragezeichen = Makro passt noch nicht zu den
   aktuellen Texten. Fähigkeit anklicken oder **Alle Angriffe in den Leisten umwandeln** drücken,
   um die Makros zu aktualisieren.

@@ -26,7 +26,12 @@ local L = {
                       .. "Changing the text also updates the macros that already contain it.",
     MSG_COND_UPDATED   = "|cff40ff40%d|r existing macros updated.",
     MSG_COND_COMBAT    = "Existing macros will be updated after combat.",
-    MSG_TOO_LONG       = "The macro for %s would be longer than 255 characters – created without the extra conditions.",
+    MSG_TOO_LONG       = "The macro for %s would be longer than 255 characters – created without your extra texts.",
+    PRE_LABEL          = "Lines before /startattack:",
+    PRE_TT_TITLE       = "Extra macro lines",
+    PRE_TT_TEXT        = "While ticked, these lines are inserted between #showtooltip and /startattack in every macro you create or convert, "
+                      .. "e.g. %s. One command per line; Enter starts a new line, a click anywhere in the window applies your input.\n\n"
+                      .. "Saved per character. Changing the lines also updates the macros that already contain them.",
 
     MSG_COMBAT_MACRO   = "Macros cannot be created in combat.",
     MSG_COMBAT         = "Not possible in combat.",
@@ -89,7 +94,13 @@ T.deDE = {
                       .. "Änderst du den Text, werden auch die Makros aktualisiert, die ihn schon enthalten.",
     MSG_COND_UPDATED   = "|cff40ff40%d|r vorhandene Makros aktualisiert.",
     MSG_COND_COMBAT    = "Vorhandene Makros werden nach dem Kampf aktualisiert.",
-    MSG_TOO_LONG       = "Das Makro für %s wäre länger als 255 Zeichen – ohne die Zusatzbedingungen erstellt.",
+    MSG_TOO_LONG       = "Das Makro für %s wäre länger als 255 Zeichen – ohne die Zusatztexte erstellt.",
+    PRE_LABEL          = "Zeilen vor /startattack:",
+    PRE_TT_TITLE       = "Zusätzliche Makrozeilen",
+    PRE_TT_TEXT        = "Solange der Haken gesetzt ist, werden diese Zeilen in jedem Makro, das du erstellst oder umwandelst, "
+                      .. "zwischen #showtooltip und /startattack eingefügt, z. B. %s. Ein Befehl pro Zeile; Enter beginnt eine neue Zeile, "
+                      .. "ein Klick irgendwo ins Fenster übernimmt die Eingabe.\n\n"
+                      .. "Wird pro Charakter gespeichert. Änderst du die Zeilen, werden auch die Makros aktualisiert, die sie schon enthalten.",
     MSG_COMBAT_MACRO   = "Im Kampf können keine Makros erstellt werden.",
     MSG_COMBAT         = "Nicht im Kampf möglich.",
     MSG_SLOTS_FULL     = "|cffff4040Alle Makroplätze sind voll|r – lösche ein paar Makros.",
@@ -141,7 +152,13 @@ T.frFR = {
                       .. "Modifier le texte met aussi à jour les macros qui le contiennent déjà.",
     MSG_COND_UPDATED   = "|cff40ff40%d|r macros existantes mises à jour.",
     MSG_COND_COMBAT    = "Les macros existantes seront mises à jour après le combat.",
-    MSG_TOO_LONG       = "La macro pour %s dépasserait 255 caractères – créée sans les conditions supplémentaires.",
+    MSG_TOO_LONG       = "La macro pour %s dépasserait 255 caractères – créée sans les textes supplémentaires.",
+    PRE_LABEL          = "Lignes avant /startattack :",
+    PRE_TT_TITLE       = "Lignes de macro supplémentaires",
+    PRE_TT_TEXT        = "Tant que la case est cochée, ces lignes sont insérées entre #showtooltip et /startattack dans chaque macro que vous créez "
+                      .. "ou convertissez, par ex. %s. Une commande par ligne ; Entrée commence une nouvelle ligne, "
+                      .. "un clic n'importe où dans la fenêtre valide la saisie.\n\n"
+                      .. "Enregistré par personnage. Modifier les lignes met aussi à jour les macros qui les contiennent déjà.",
     MSG_COMBAT_MACRO   = "Impossible de créer des macros en combat.",
     MSG_COMBAT         = "Impossible en combat.",
     MSG_SLOTS_FULL     = "|cffff4040Tous les emplacements de macro sont pleins|r – supprimez quelques macros.",
@@ -193,7 +210,13 @@ T.esES = {
                       .. "Al cambiar el texto también se actualizan las macros que ya lo contienen.",
     MSG_COND_UPDATED   = "|cff40ff40%d|r macros existentes actualizadas.",
     MSG_COND_COMBAT    = "Las macros existentes se actualizarán después del combate.",
-    MSG_TOO_LONG       = "La macro de %s superaría los 255 caracteres: creada sin las condiciones adicionales.",
+    MSG_TOO_LONG       = "La macro de %s superaría los 255 caracteres: creada sin los textos adicionales.",
+    PRE_LABEL          = "Líneas antes de /startattack:",
+    PRE_TT_TITLE       = "Líneas de macro adicionales",
+    PRE_TT_TEXT        = "Mientras la casilla esté marcada, estas líneas se insertan entre #showtooltip y /startattack en cada macro que crees "
+                      .. "o conviertas, p. ej. %s. Un comando por línea; Intro empieza una línea nueva y un clic en cualquier parte "
+                      .. "de la ventana aplica lo escrito.\n\n"
+                      .. "Se guarda por personaje. Al cambiar las líneas también se actualizan las macros que ya las contienen.",
     MSG_COMBAT_MACRO   = "No se pueden crear macros en combate.",
     MSG_COMBAT         = "No es posible en combate.",
     MSG_SLOTS_FULL     = "|cffff4040Todas las casillas de macro están llenas|r: borra algunas macros.",
@@ -246,7 +269,13 @@ T.itIT = {
                       .. "Modificando il testo vengono aggiornate anche le macro che lo contengono già.",
     MSG_COND_UPDATED   = "|cff40ff40%d|r macro esistenti aggiornate.",
     MSG_COND_COMBAT    = "Le macro esistenti verranno aggiornate dopo il combattimento.",
-    MSG_TOO_LONG       = "La macro per %s supererebbe i 255 caratteri: creata senza le condizioni aggiuntive.",
+    MSG_TOO_LONG       = "La macro per %s supererebbe i 255 caratteri: creata senza i testi aggiuntivi.",
+    PRE_LABEL          = "Righe prima di /startattack:",
+    PRE_TT_TITLE       = "Righe di macro aggiuntive",
+    PRE_TT_TEXT        = "Finché la casella è spuntata, queste righe vengono inserite tra #showtooltip e /startattack in ogni macro che crei "
+                      .. "o converti, ad es. %s. Un comando per riga; Invio inizia una nuova riga, un clic in un punto qualsiasi "
+                      .. "della finestra applica il testo.\n\n"
+                      .. "Salvato per personaggio. Se modifichi le righe, vengono aggiornate anche le macro che le contengono già.",
     MSG_COMBAT_MACRO   = "Impossibile creare macro in combattimento.",
     MSG_COMBAT         = "Non possibile in combattimento.",
     MSG_SLOTS_FULL     = "|cffff4040Tutti gli slot delle macro sono pieni|r: elimina qualche macro.",
@@ -298,7 +327,13 @@ T.ptBR = {
                       .. "Alterar o texto também atualiza as macros que já o contêm.",
     MSG_COND_UPDATED   = "|cff40ff40%d|r macros existentes atualizadas.",
     MSG_COND_COMBAT    = "As macros existentes serão atualizadas após o combate.",
-    MSG_TOO_LONG       = "A macro de %s passaria de 255 caracteres: criada sem as condições extras.",
+    MSG_TOO_LONG       = "A macro de %s passaria de 255 caracteres: criada sem os textos extras.",
+    PRE_LABEL          = "Linhas antes de /startattack:",
+    PRE_TT_TITLE       = "Linhas extras de macro",
+    PRE_TT_TEXT        = "Enquanto a caixa estiver marcada, estas linhas são inseridas entre #showtooltip e /startattack em cada macro que você "
+                      .. "criar ou converter, por ex. %s. Um comando por linha; Enter começa uma nova linha e um clique em qualquer lugar "
+                      .. "da janela aplica o texto.\n\n"
+                      .. "Salvo por personagem. Alterar as linhas também atualiza as macros que já as contêm.",
     MSG_COMBAT_MACRO   = "Não é possível criar macros em combate.",
     MSG_COMBAT         = "Não é possível em combate.",
     MSG_SLOTS_FULL     = "|cffff4040Todos os espaços de macro estão cheios|r: apague algumas macros.",
@@ -350,7 +385,13 @@ T.ruRU = {
                       .. "При изменении текста обновляются и макросы, которые его уже содержат.",
     MSG_COND_UPDATED   = "Существующих макросов обновлено: |cff40ff40%d|r.",
     MSG_COND_COMBAT    = "Существующие макросы будут обновлены после боя.",
-    MSG_TOO_LONG       = "Макрос для «%s» превысил бы 255 символов – создан без дополнительных условий.",
+    MSG_TOO_LONG       = "Макрос для «%s» превысил бы 255 символов – создан без дополнительного текста.",
+    PRE_LABEL          = "Строки перед /startattack:",
+    PRE_TT_TITLE       = "Дополнительные строки макроса",
+    PRE_TT_TEXT        = "Пока флажок установлен, эти строки вставляются между #showtooltip и /startattack в каждый макрос, который вы создаёте "
+                      .. "или преобразуете, например %s. Одна команда на строку; Enter начинает новую строку, "
+                      .. "щелчок в любом месте окна применяет введённое.\n\n"
+                      .. "Сохраняется для каждого персонажа отдельно. При изменении строк обновляются и макросы, которые уже их содержат.",
     MSG_COMBAT_MACRO   = "Нельзя создавать макросы в бою.",
     MSG_COMBAT         = "Недоступно в бою.",
     MSG_SLOTS_FULL     = "|cffff4040Все ячейки макросов заняты|r – удалите несколько макросов.",
@@ -403,7 +444,12 @@ T.koKR = {
                       .. "문구를 바꾸면 이미 이 문구가 들어 있는 매크로도 함께 갱신됩니다.",
     MSG_COND_UPDATED   = "기존 매크로 |cff40ff40%d|r개를 갱신했습니다.",
     MSG_COND_COMBAT    = "기존 매크로는 전투가 끝난 뒤 갱신됩니다.",
-    MSG_TOO_LONG       = "%s 매크로가 255자를 넘어 추가 조건 없이 만들었습니다.",
+    MSG_TOO_LONG       = "%s 매크로가 255자를 넘어 추가 문구 없이 만들었습니다.",
+    PRE_LABEL          = "/startattack 앞에 넣을 줄:",
+    PRE_TT_TITLE       = "추가 매크로 줄",
+    PRE_TT_TEXT        = "체크되어 있는 동안, 만들거나 변환하는 모든 매크로의 #showtooltip과 /startattack 사이에 이 줄들이 들어갑니다. "
+                      .. "예: %s. 한 줄에 명령어 하나씩 입력하세요. Enter는 줄을 바꾸고, 창의 아무 곳이나 클릭하면 입력이 적용됩니다.\n\n"
+                      .. "캐릭터별로 저장됩니다. 줄을 바꾸면 이미 그 줄이 들어 있는 매크로도 함께 갱신됩니다.",
     MSG_COMBAT_MACRO   = "전투 중에는 매크로를 만들 수 없습니다.",
     MSG_COMBAT         = "전투 중에는 사용할 수 없습니다.",
     MSG_SLOTS_FULL     = "|cffff4040매크로 칸이 모두 찼습니다|r – 매크로를 몇 개 삭제하세요.",
@@ -456,7 +502,12 @@ T.zhCN = {
                       .. "修改文字时，已包含它的宏也会一并更新。",
     MSG_COND_UPDATED   = "已更新 |cff40ff40%d|r 个现有的宏。",
     MSG_COND_COMBAT    = "现有的宏将在战斗结束后更新。",
-    MSG_TOO_LONG       = "%s 的宏会超过 255 个字符，已省略额外条件。",
+    MSG_TOO_LONG       = "%s 的宏会超过 255 个字符，已省略额外文字。",
+    PRE_LABEL          = "/startattack 之前的行：",
+    PRE_TT_TITLE       = "额外的宏命令行",
+    PRE_TT_TEXT        = "勾选时，你创建或转换的每个宏都会在 #showtooltip 和 /startattack 之间插入这些行，例如 %s。"
+                      .. "每行一条命令；按回车换行，点击窗口任意位置即可应用输入。\n\n"
+                      .. "按角色分别保存。修改这些行时，已包含它们的宏也会一并更新。",
     MSG_COMBAT_MACRO   = "战斗中无法创建宏。",
     MSG_COMBAT         = "战斗中无法进行。",
     MSG_SLOTS_FULL     = "|cffff4040宏位置已满|r，请删除一些宏。",
@@ -509,7 +560,12 @@ T.zhTW = {
                       .. "修改文字時，已包含它的巨集也會一併更新。",
     MSG_COND_UPDATED   = "已更新 |cff40ff40%d|r 個現有的巨集。",
     MSG_COND_COMBAT    = "現有的巨集將在戰鬥結束後更新。",
-    MSG_TOO_LONG       = "%s 的巨集會超過 255 個字元，已省略額外條件。",
+    MSG_TOO_LONG       = "%s 的巨集會超過 255 個字元，已省略額外文字。",
+    PRE_LABEL          = "/startattack 之前的行：",
+    PRE_TT_TITLE       = "額外的巨集指令行",
+    PRE_TT_TEXT        = "勾選時，你建立或轉換的每個巨集都會在 #showtooltip 和 /startattack 之間插入這些行，例如 %s。"
+                      .. "每行一條指令；按 Enter 換行，點擊視窗任意位置即可套用輸入。\n\n"
+                      .. "依角色分別儲存。修改這些行時，已包含它們的巨集也會一併更新。",
     MSG_COMBAT_MACRO   = "戰鬥中無法建立巨集。",
     MSG_COMBAT         = "戰鬥中無法進行。",
     MSG_SLOTS_FULL     = "|cffff4040巨集欄位已滿|r，請刪除一些巨集。",

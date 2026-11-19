@@ -19,6 +19,7 @@
 ## Category: Action Bars
 ## Category-deDE: Aktionsleisten
 ## SavedVariables: StartAttackMacrosDB
+## SavedVariablesPerCharacter: StartAttackMacrosCharDB
 ## AddonCompartmentFunc: StartAttackMacros_OnCompartmentClick
 ## AddonCompartmentFuncOnEnter: StartAttackMacros_OnCompartmentEnter
 ## AddonCompartmentFuncOnLeave: StartAttackMacros_OnCompartmentLeave

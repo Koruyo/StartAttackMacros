@@ -1,29 +1,50 @@
 ![StartAttack Macros](BANNER-URL)
 
-## Never stand there doing nothing again
+**Never stand there doing nothing again. Every ability starts your auto-attack.**
+World of Warcraft Classic · WoW Forever · 10 languages
 
-In Classic, using an ability does **not** always start your auto-attack, and that costs you a
-lot of damage. The usual fix is to write a `/startattack` macro for every ability by hand.
+Yes, it's vibecoded - but it works great.
 
-**StartAttack Macros does it for you, in one click.**
+## What it does
 
-### Features
+In Classic, using an ability like *Sinister Strike* or *Heroic Strike* does **not** always start
+your auto-attack, and that costs you a lot of damage. The usual fix is to write a macro for every
+single ability:
 
-- **Spellbook window**: all your attack abilities in one place. Click or drag one and its
-  `/startattack` macro is ready for your action bar.
+```
+#showtooltip Sinister Strike
+/startattack
+/cast Sinister Strike
+```
+
+**StartAttack Macros does that for you.**
+
+- **Spellbook window**: all your attack abilities in one place. Click one (or drag it) and its
+  `/startattack` macro is ready to drop onto your action bar.
 - **One-click conversion**: replaces every attack ability on your action bars with its macro,
   in the same slot.
-- **Smart filtering**: only attack abilities. Ranks are merged (always the highest rank), and
-  Auto Attack / Shoot / Auto Shot are skipped.
-- **Macro tracking**: check marks for existing macros and a free-slot counter.
-- **Your own conditions**: add text like `[@mouseover,harm,nodead][]` after `/cast` and
-  `[harm,nodead]` after `/startattack` in every macro, with tick boxes to leave them out of
-  individual macros.
+- **Smart**: only attack abilities are listed. Ranks are merged (always casts the highest rank),
+  and Auto Attack / Shoot / Auto Shot are skipped.
+- **Macro tracking**: a green check mark shows which abilities already have an up-to-date macro,
+  a yellow question mark shows macros that do not match your current texts yet, and a counter
+  shows your free macro slots.
+- **Your own conditions**: type something like `[@mouseover,harm,nodead][]` into the window and
+  it is inserted after `/cast` in every macro. A second field does the same for `/startattack`,
+  for example `[harm,nodead]`. Untick a box to create a macro without that text.
+- **Your own lines**: add commands such as `/petattack` between `#showtooltip` and `/startattack`,
+  saved per character.
 - **Minimap button**, **Addon Compartment** entry and a full **options panel**.
+- **Broker displays**: shows up as a launcher in Titan Panel, ChocolateBar and other
+  LibDataBroker displays.
 - **Lightweight**: no libraries, no dependencies.
 - **10 languages**: English, Deutsch, Français, Español, Italiano, Português, Русский, 한국어, 简体中文, 繁體中文
 
-### Commands
+## Why macros and not "automatic"?
+
+Blizzard protects `StartAttack()`, so addons are not allowed to start your attack on their own.
+Macros are the only allowed way. This addon builds and places them for you.
+
+## Usage
 
 | Command | Action |
 |---|---|
@@ -33,19 +54,59 @@ lot of damage. The usual fix is to write a `/startattack` macro for every abilit
 | `/sam options` | Open the options |
 | `/sam minimap` | Show / hide the minimap button |
 
-### Good to know
+Or: **Esc → Options → AddOns → StartAttack Macros**, or click the minimap button.
 
-Blizzard protects `StartAttack()`, so no addon is allowed to start your attack on its own.
-Macros are the only allowed way, and this addon builds and places them for you. Macros are named
-`+SpellName` and use character-specific slots first. Nothing can be changed in combat.
+> Macros are named `+SpellName` and use character-specific macro slots first, then general ones.
+> Nothing can be changed in combat (Blizzard restriction).
 
----
+## Extra macro conditions
 
-## Deutsch
+The fields **Add after /startattack** and **Add after /cast** at the bottom of the window take
+any macro conditions. With `[harm,nodead]` and `[@mouseover,harm,nodead][]` the macros look like
+this:
 
-**Jede Fähigkeit startet automatisch deinen Autoangriff.** Das Addon erstellt `/startattack`-Makros
-für deine Angriffsfähigkeiten und setzt sie auf Wunsch direkt in deine Aktionsleisten.
-`/sam` öffnet das Fenster, und `/sam convert` wandelt alle Leisten um.
+```
+#showtooltip Sinister Strike
+/startattack [harm,nodead]
+/cast [@mouseover,harm,nodead][] Sinister Strike
+```
+
+- Each tick box decides whether its text goes into the macros you create or convert next. Untick
+  it and click an ability to get that one macro without the text.
+- When you change a text, macros that contain the old text are updated.
+- A yellow question mark on an ability means its macro differs from what the fields and tick
+  boxes would produce now. Click the ability to update that macro, or press **Convert all
+  attacks on your action bars** to update every macro the addon created.
+- The trailing `[]` after `/cast` makes the macro fall back to your current target.
+- `/startattack [harm,nodead]` only starts auto-attack on a hostile, living target. It no longer
+  picks the nearest enemy when you have no target.
+
+## Extra macro lines
+
+The field **Lines before /startattack** takes whole macro lines, one command per line. They go
+between `#showtooltip` and `/startattack`:
+
+```
+#showtooltip Shadow Bolt
+/petattack
+/startattack
+/cast Shadow Bolt
+```
+
+- Any slash command works, including those of other addons.
+- Enter starts a new line. Click anywhere in the window to apply what you typed.
+- The lines are saved per character, because `/petattack` only makes sense on some classes. The
+  two condition fields stay account-wide.
+- Tick box, yellow question mark and updating work the same way as for the condition fields.
+- A macro can hold 255 characters. If your texts make it longer, the macro is created without
+  them and you get a message in chat.
+
+## Installation
+
+- **CurseForge app**: search for *StartAttack Macros*.
+- **Manual**: download the latest zip from
+  [Releases](https://github.com/Koruyo/StartAttackMacros/releases) and extract it into
+  `World of Warcraft\_classic_era_\Interface\AddOns\`.
 
 ---
 
