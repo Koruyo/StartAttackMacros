@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.5.0
+- New field "Lines after /cast": add your own macro lines at the end of the macro. It has its
+  own tick box and is saved per character
+- All four text fields now look the same and have the same size; long conditions wrap onto a
+  second line instead of being cut off
+
 ## v1.4.0
 - Fixed: long spell names with non-Latin letters (Russian, Korean, Chinese, also umlauts and
   accents) were cut in the middle of a letter. The broken macro name could make the server drop

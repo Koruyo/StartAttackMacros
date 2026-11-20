@@ -35,7 +35,7 @@ macro for every single ability:
 - **Your own conditions**: type something like `[@mouseover,harm,nodead][]` into the window and
   it is inserted after `/cast` in every macro. A second field does the same for `/startattack`,
   for example `[harm,nodead]`. Untick a box to create a macro without that text.
-- **Your own lines**: add commands such as `/petattack` between `#showtooltip` and `/startattack`,
+- **Your own lines**: add commands such as `/petattack` before `/startattack` or after `/cast`,
   saved per character.
 - **Minimap button**, **Addon Compartment** entry and a full **options panel**.
 - **Broker displays**: shows up as a launcher in Titan Panel, ChocolateBar and other
@@ -88,15 +88,20 @@ this:
 
 ### Extra macro lines
 
-The field **Lines before /startattack** takes whole macro lines, one command per line. They go
-between `#showtooltip` and `/startattack`:
+The fields **Lines before /startattack** and **Lines after /cast** take whole macro lines, one
+command per line. The first goes between `#showtooltip` and `/startattack`, the second at the end
+of the macro:
 
 ```
 #showtooltip Shadow Bolt
 /petattack
 /startattack
 /cast Shadow Bolt
+/script UIErrorsFrame:Clear()
 ```
+
+Together with the two condition fields this covers the lines before and after the two commands
+and the conditions inside them.
 
 - Any slash command works, including those of other addons.
 - Enter starts a new line. Click anywhere in the window to apply what you typed.
@@ -126,8 +131,8 @@ Aktionsleisten.
 - Felder **Nach /startattack einfügen** und **Nach /cast einfügen** im Fenster: eigene
   Bedingungen wie `[harm,nodead]` bzw. `[@mouseover,harm,nodead][]` für alle Makros. Ohne Haken
   wird das Makro ohne den jeweiligen Text erstellt.
-- Feld **Zeilen vor /startattack**: eigene Makrozeilen wie `/petattack` zwischen `#showtooltip`
-  und `/startattack`, pro Charakter gespeichert.
+- Felder **Zeilen vor /startattack** und **Zeilen nach /cast**: eigene Makrozeilen wie
+  `/petattack` vor dem Angriff bzw. am Ende des Makros, pro Charakter gespeichert.
 - Erscheint als Eintrag in Broker-Leisten wie Titan Panel oder ChocolateBar (LibDataBroker).
 - Grüner Haken = Makro ist aktuell, gelbes Fragezeichen = Makro passt noch nicht zu den
   aktuellen Texten. Fähigkeit anklicken oder **Alle Angriffe in den Leisten umwandeln** drücken,

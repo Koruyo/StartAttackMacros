@@ -31,7 +31,7 @@ single ability:
 - **Your own conditions**: type something like `[@mouseover,harm,nodead][]` into the window and
   it is inserted after `/cast` in every macro. A second field does the same for `/startattack`,
   for example `[harm,nodead]`. Untick a box to create a macro without that text.
-- **Your own lines**: add commands such as `/petattack` between `#showtooltip` and `/startattack`,
+- **Your own lines**: add commands such as `/petattack` before `/startattack` or after `/cast`,
   saved per character.
 - **Minimap button**, **Addon Compartment** entry and a full **options panel**.
 - **Broker displays**: shows up as a launcher in Titan Panel, ChocolateBar and other
@@ -83,15 +83,20 @@ this:
 
 ## Extra macro lines
 
-The field **Lines before /startattack** takes whole macro lines, one command per line. They go
-between `#showtooltip` and `/startattack`:
+The fields **Lines before /startattack** and **Lines after /cast** take whole macro lines, one
+command per line. The first goes between `#showtooltip` and `/startattack`, the second at the end
+of the macro:
 
 ```
 #showtooltip Shadow Bolt
 /petattack
 /startattack
 /cast Shadow Bolt
+/script UIErrorsFrame:Clear()
 ```
+
+Together with the two condition fields this covers the lines before and after the two commands
+and the conditions inside them.
 
 - Any slash command works, including those of other addons.
 - Enter starts a new line. Click anywhere in the window to apply what you typed.
