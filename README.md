@@ -35,8 +35,8 @@ macro for every single ability:
 - **Your own conditions**: type something like `[@mouseover,harm,nodead][]` into the window and
   it is inserted after `/cast` in every macro. A second field does the same for `/startattack`,
   for example `[harm,nodead]`. Untick a box to create a macro without that text.
-- **Your own lines**: add commands such as `/petattack` before `/startattack` or after `/cast`,
-  saved per character.
+- **Your own lines**: add commands such as `/petattack` before `/startattack`, between the two
+  commands or after `/cast`, and text right after the spell name. Saved per character.
 - **Minimap button**, **Addon Compartment** entry and a full **options panel**.
 - **Broker displays**: shows up as a launcher in Titan Panel, ChocolateBar and other
   LibDataBroker displays.
@@ -75,8 +75,9 @@ this:
 /cast [@mouseover,harm,nodead][] Sinister Strike
 ```
 
-- Each tick box decides whether its text goes into the macros you create or convert next. Untick
-  it and click an ability to get that one macro without the text.
+- Tick a box to show its text field. Each tick box decides whether its text goes into the macros
+  you create or convert next. Untick it and click an ability to get that one macro without the
+  text; the text itself is kept for the next time you tick the box.
 - When you change a text, macros that contain the old text are updated. Macros without it, and
   macros you edited by hand, are left alone.
 - A yellow question mark on an ability means its macro differs from what the fields and tick
@@ -88,25 +89,38 @@ this:
 
 ### Extra macro lines
 
-The fields **Lines before /startattack** and **Lines after /cast** take whole macro lines, one
-command per line. The first goes between `#showtooltip` and `/startattack`, the second at the end
-of the macro:
+The fields **Lines before /startattack**, **Lines before /cast** and **Lines after /cast** take
+whole macro lines, one command per line:
 
 ```
 #showtooltip Shadow Bolt
 /petattack
 /startattack
+/use 13
 /cast Shadow Bolt
 /script UIErrorsFrame:Clear()
 ```
 
-Together with the two condition fields this covers the lines before and after the two commands
-and the conditions inside them.
+### Text after the spell name
+
+The field **Add after the spell** attaches its text directly to the spell name in the `/cast`
+line, without a space. With `(Rank 1)` the line becomes `/cast Shadow Bolt(Rank 1)`.
+
+### All six positions
+
+```
+#showtooltip Spell
+<Lines before /startattack>
+/startattack <Add after /startattack>
+<Lines before /cast>
+/cast <Add after /cast> Spell<Add after the spell>
+<Lines after /cast>
+```
 
 - Any slash command works, including those of other addons.
 - Enter starts a new line. Click anywhere in the window to apply what you typed.
-- The lines are saved per character, because `/petattack` only makes sense on some classes. The
-  two condition fields stay account-wide.
+- The line fields and **Add after the spell** are saved per character, because commands like
+  `/petattack` only make sense on some classes. The two condition fields stay account-wide.
 - Tick box, yellow question mark and updating work the same way as for the condition fields.
 - A macro can hold 255 characters. If your texts make it longer, the macro is created without
   them and you get a message in chat.
@@ -129,10 +143,12 @@ Aktionsleisten.
 - `/sam` öffnet das Fenster. Fähigkeit anklicken oder ziehen und in die Leiste legen.
 - `/sam convert` ersetzt alle Angriffsfähigkeiten in den Leisten durch ihre Makros.
 - Felder **Nach /startattack einfügen** und **Nach /cast einfügen** im Fenster: eigene
-  Bedingungen wie `[harm,nodead]` bzw. `[@mouseover,harm,nodead][]` für alle Makros. Ohne Haken
-  wird das Makro ohne den jeweiligen Text erstellt.
-- Felder **Zeilen vor /startattack** und **Zeilen nach /cast**: eigene Makrozeilen wie
-  `/petattack` vor dem Angriff bzw. am Ende des Makros, pro Charakter gespeichert.
+  Bedingungen wie `[harm,nodead]` bzw. `[@mouseover,harm,nodead][]` für alle Makros. Das
+  Textfeld erscheint, sobald der Haken gesetzt ist; ohne Haken wird das Makro ohne den
+  jeweiligen Text erstellt.
+- Felder **Zeilen vor /startattack**, **Zeilen vor /cast** und **Zeilen nach /cast**: eigene
+  Makrozeilen wie `/petattack` an jeder Stelle des Makros, pro Charakter gespeichert.
+- Feld **Nach dem Zauber einfügen**: Text direkt hinter dem Zaubernamen, z. B. `(Rang 1)`.
 - Erscheint als Eintrag in Broker-Leisten wie Titan Panel oder ChocolateBar (LibDataBroker).
 - Grüner Haken = Makro ist aktuell, gelbes Fragezeichen = Makro passt noch nicht zu den
   aktuellen Texten. Fähigkeit anklicken oder **Alle Angriffe in den Leisten umwandeln** drücken,

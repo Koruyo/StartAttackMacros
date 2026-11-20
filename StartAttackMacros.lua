@@ -5,8 +5,8 @@
 --   /startattack
 --   /cast Zauber
 -- (optional mit eigenen Bedingungen hinter /startattack und /cast,
---  z. B. [harm,nodead] bzw. [@mouseover,harm,nodead][], und mit eigenen
---  Zeilen vor /startattack und nach /cast, z. B. /petattack)
+--  z. B. [harm,nodead] bzw. [@mouseover,harm,nodead][], mit eigenem Text hinter
+--  dem Zaubernamen und mit eigenen Zeilen vor, zwischen und nach den beiden Befehlen)
 -- und kann sie per Klick auf den Cursor legen oder direkt in die Leisten setzen.
 
 local ADDON_NAME, ns = ...
@@ -22,6 +22,7 @@ local MAX_BODY = 255        -- maximale Makrolänge
 local COND_EXAMPLE = "[@mouseover,harm,nodead][]"
 local ATK_EXAMPLE = "[harm,nodead]"
 local PRE_EXAMPLE = "/petattack"
+local MID_EXAMPLE = "/use 13"
 local POST_EXAMPLE = "/script UIErrorsFrame:Clear()"
 local BROKER_NAME = "StartAttack Macros"
 
@@ -38,23 +39,39 @@ local COMMANDS = {
 
 local DEFAULTS = {
     minimap = { hide = false, angle = 215 },
-    conditions = "",              -- Text, der hinter /cast eingefügt wird
-    useConditions = true,         -- Haken im Fenster: Text in neue Makros einfügen?
-    attackConditions = "",        -- dasselbe für die Zeile /startattack
-    useAttackConditions = true,
 }
--- Pro Charakter gespeichert: /petattack & Co. passen nur zu bestimmten Klassen
-local CHAR_DEFAULTS = {
-    extraLines = "",              -- Zeilen zwischen #showtooltip und /startattack
-    useExtraLines = true,
-    linesAfter = "",              -- Zeilen nach /cast (Ende des Makros)
-    useLinesAfter = true,
+
+-- Die sechs Stellen, an denen eigener Text ins Makro kommt, in der Reihenfolge des Makros:
+--   #showtooltip Zauber
+--   <pre>
+--   /startattack <atk>
+--   <mid>
+--   /cast <cond> Zauber<suffix>
+--   <post>
+-- key/use = Namen in den gespeicherten Einstellungen (Text + Haken), part = Makroteil,
+-- lines = ganze Makrozeilen (sonst Text innerhalb einer Zeile),
+-- char = pro Charakter gespeichert (klassenabhängige Befehle wie /petattack)
+local FIELDS = {
+    { key = "extraLines", use = "useExtraLines", part = "pre", lines = true, char = true,
+      label = L.PRE_LABEL, title = L.PRE_TT_TITLE, tip = L.PRE_TT_TEXT, example = PRE_EXAMPLE },
+    { key = "attackConditions", use = "useAttackConditions", part = "atk",
+      label = L.ATK_LABEL, title = L.COND_TT_TITLE, tip = L.ATK_TT_TEXT, example = ATK_EXAMPLE },
+    { key = "linesBetween", use = "useLinesBetween", part = "mid", lines = true, char = true,
+      label = L.MID_LABEL, title = L.PRE_TT_TITLE, tip = L.MID_TT_TEXT, example = MID_EXAMPLE },
+    { key = "conditions", use = "useConditions", part = "cond",
+      label = L.COND_LABEL, title = L.COND_TT_TITLE, tip = L.COND_TT_TEXT, example = COND_EXAMPLE },
+    { key = "castSuffix", use = "useCastSuffix", part = "suffix", char = true,
+      label = L.SUFFIX_LABEL, title = L.COND_TT_TITLE, tip = L.SUFFIX_TT_TEXT, example = L.SUFFIX_EXAMPLE },
+    { key = "linesAfter", use = "useLinesAfter", part = "post", lines = true, char = true,
+      label = L.POST_LABEL, title = L.PRE_TT_TITLE, tip = L.POST_TT_TEXT, example = POST_EXAMPLE },
 }
-local LINE_KEYS = { extraLines = true, linesAfter = true }   -- ganze Zeilen statt Bedingungen
+local FIELD = {}   -- key -> Feld
+for _, f in ipairs(FIELDS) do FIELD[f.key] = f end
+local NO_PARTS = { pre = "", atk = "", mid = "", cond = "", suffix = "", post = "" }
 local db, cdb
 
 local function Store(key)
-    return CHAR_DEFAULTS[key] ~= nil and cdb or db
+    return FIELD[key].char and cdb or db
 end
 
 local function Print(msg)
@@ -164,19 +181,36 @@ local function CleanLines(text)
     return table.concat(out, "\n")
 end
 
--- cond = Text hinter /cast, atk = Text hinter /startattack,
--- pre = eigene Zeilen vor /startattack, post = eigene Zeilen nach /cast ("" = nichts)
-local function BuildBody(spell, cond, atk, pre, post)
-    return "#showtooltip " .. spell
-        .. (pre ~= "" and "\n" .. pre or "")
-        .. "\n/startattack" .. (atk ~= "" and " " .. atk or "")
-        .. "\n/cast " .. (cond ~= "" and cond .. " " or "") .. spell
-        .. (post ~= "" and "\n" .. post or "")
+local function Clean(key, text)
+    return (FIELD[key].lines and CleanLines or CleanConditions)(text)
 end
 
--- Zerlegt ein vom Addon erzeugtes Makro wieder in Zauber, die beiden Texte und die Zusatzzeilen:
--- erste Zeile #showtooltip, irgendwo /startattack direkt gefolgt von /cast mit dem Zauber;
--- alles davor und danach sind Zusatzzeilen
+-- p = Makroteile (siehe FIELDS), jeweils "" für nichts
+local function BuildBody(spell, p)
+    return "#showtooltip " .. spell
+        .. (p.pre ~= "" and "\n" .. p.pre or "")
+        .. "\n/startattack" .. (p.atk ~= "" and " " .. p.atk or "")
+        .. (p.mid ~= "" and "\n" .. p.mid or "")
+        .. "\n/cast " .. (p.cond ~= "" and p.cond .. " " or "") .. spell .. p.suffix
+        .. (p.post ~= "" and "\n" .. p.post or "")
+end
+
+-- Zerlegt "<cond> Zauber<suffix>" (der Teil hinter "/cast "). Der Zaubername muss am Anfang
+-- stehen oder auf ein Leerzeichen bzw. "]" folgen.
+local function SplitCast(cast, spell)
+    local init = 1
+    while true do
+        local from, to = cast:find(spell, init, true)
+        if not from then return end
+        local cond = cast:sub(1, from - 1)
+        if cond == "" or cond:find("[%s%]]$") then return cond, cast:sub(to + 1) end
+        init = from + 1
+    end
+end
+
+-- Zerlegt ein vom Addon erzeugtes Makro wieder in Zauber und Makroteile:
+-- erste Zeile #showtooltip, dann irgendwo /startattack und danach /cast mit dem Zauber;
+-- die Zeilen davor, dazwischen und danach sind Zusatzzeilen
 -- (tolerant gegenüber Handarbeit: Leerzeichen am Ende, fehlendes Leerzeichen vor dem Zauber)
 local function ParseBody(body)
     local lines = {}
@@ -186,32 +220,46 @@ local function ParseBody(body)
     if not spell then return end
     for i = 2, n - 1 do
         local atk = lines[i]:match("^/startattack(.*)$")
-        local cast = atk and lines[i + 1]:match("^/cast (.+)$")
-        if cast and cast:sub(-#spell) == spell then
-            local cond = cast:sub(1, -#spell - 1)
-            if (cond == "" or cond:find("[%s%]]$")) and (atk == "" or atk:sub(1, 1) == " ") then
-                return spell, CleanConditions(atk), CleanConditions(cond),
-                    CleanLines(table.concat(lines, "\n", 2, i - 1)),
-                    CleanLines(table.concat(lines, "\n", i + 2, n))
+        if atk and (atk == "" or atk:sub(1, 1) == " ") then
+            for j = i + 1, n do
+                local cast = lines[j]:match("^/cast (.+)$")
+                local cond, suffix
+                if cast then cond, suffix = SplitCast(cast, spell) end
+                if cond then
+                    return spell, {
+                        pre = CleanLines(table.concat(lines, "\n", 2, i - 1)),
+                        atk = CleanConditions(atk),
+                        mid = CleanLines(table.concat(lines, "\n", i + 1, j - 1)),
+                        cond = CleanConditions(cond),
+                        suffix = CleanConditions(suffix),
+                        post = CleanLines(table.concat(lines, "\n", j + 1, n)),
+                    }
+                end
             end
         end
     end
 end
 
--- Ohne "cond"/"atk"/"pre"/"post" gilt die aktuelle Einstellung (Text + Haken im Fenster).
+-- Die Makroteile nach den aktuellen Einstellungen (Text + Haken im Fenster)
+local function CurrentParts()
+    local p = {}
+    for _, f in ipairs(FIELDS) do
+        local store = Store(f.key)
+        p[f.part] = store[f.use] and store[f.key] or ""
+    end
+    return p
+end
+
+-- Ohne "parts" gelten die aktuellen Einstellungen.
 -- Zweiter Rückgabewert: true, wenn die Texte wegen der Längengrenze weggelassen wurden.
-local function ComputeBody(spell, cond, atk, pre, post)
-    cond = cond or (db.useConditions and db.conditions) or ""
-    atk = atk or (db.useAttackConditions and db.attackConditions) or ""
-    pre = pre or (cdb.useExtraLines and cdb.extraLines) or ""
-    post = post or (cdb.useLinesAfter and cdb.linesAfter) or ""
-    local body = BuildBody(spell, cond, atk, pre, post)
-    if #body > MAX_BODY then return BuildBody(spell, "", "", "", ""), true end
+local function ComputeBody(spell, parts)
+    local body = BuildBody(spell, parts or CurrentParts())
+    if #body > MAX_BODY then return BuildBody(spell, NO_PARTS), true end
     return body, false
 end
 
-local function MacroBody(spell, cond, atk, pre, post)
-    local body, tooLong = ComputeBody(spell, cond, atk, pre, post)
+local function MacroBody(spell, parts)
+    local body, tooLong = ComputeBody(spell, parts)
     if tooLong then Print(L.MSG_TOO_LONG:format(spell)) end
     return body
 end
@@ -254,14 +302,14 @@ local function EnsureMacro(spell)
     return name
 end
 
--- Ruft fn(idx, body, spell, atk, cond, pre, post) für jedes vom Addon erzeugte Makro auf
+-- Ruft fn(idx, body, spell, parts) für jedes vom Addon erzeugte Makro auf
 local function ForEachAddonMacro(fn)
     local function visit(idx)
         local name = GetMacroInfo(idx)
         local body = name and name:sub(1, #PREFIX) == PREFIX and GetMacroBody(idx)
         if not body then return end
-        local spell, atk, cond, pre, post = ParseBody(body)
-        if spell and MacroName(spell) == name then fn(idx, body, spell, atk, cond, pre, post) end
+        local spell, parts = ParseBody(body)
+        if spell and MacroName(spell) == name then fn(idx, body, spell, parts) end
     end
     local numGlobal, numChar = GetNumMacros()
     local firstChar = (MAX_ACCOUNT_MACROS or 120) + 1
@@ -312,8 +360,7 @@ end
 
 -- Nach einer Textänderung: Makros, die den alten Text enthalten, bekommen den neuen.
 -- Makros ohne den Text (oder von Hand geänderte) bleiben unberührt.
--- key = "conditions" (hinter /cast), "attackConditions" (hinter /startattack)
--- "extraLines" (Zeilen vor /startattack) oder "linesAfter" (Zeilen nach /cast)
+-- key = Name des Felds, siehe FIELDS
 local pending = {}
 
 local function UpdateExistingMacros(key, old)
@@ -324,20 +371,11 @@ local function UpdateExistingMacros(key, old)
         Print(L.MSG_COND_COMBAT)
         return
     end
-    local count = 0
-    ForEachAddonMacro(function(idx, _, spell, atk, cond, pre, post)
-        if key == "conditions" and cond == old then
-            cond = new
-        elseif key == "attackConditions" and atk == old then
-            atk = new
-        elseif key == "extraLines" and pre == old then
-            pre = new
-        elseif key == "linesAfter" and post == old then
-            post = new
-        else
-            return
-        end
-        EditMacro(idx, nil, nil, MacroBody(spell, cond, atk, pre, post))
+    local part, count = FIELD[key].part, 0
+    ForEachAddonMacro(function(idx, _, spell, parts)
+        if parts[part] ~= old then return end
+        parts[part] = new
+        EditMacro(idx, nil, nil, MacroBody(spell, parts))
         count = count + 1
     end)
     if count > 0 then Print(L.MSG_COND_UPDATED:format(count)) end
@@ -361,7 +399,7 @@ end
 local function SetConditions(key, text)
     local store = Store(key)
     local old = store[key]
-    store[key] = (LINE_KEYS[key] and CleanLines or CleanConditions)(text)
+    store[key] = Clean(key, text)
     UpdateExistingMacros(key, old)
 end
 
@@ -433,7 +471,7 @@ end
 ------------------------------------------------------------------------
 local frame, scrollChild, buttons, showAll = nil, nil, {}, false
 local COLS, SIZE, GAP = 8, 38, 8
-local FIELD_H, FIELD_GAP, FIELDS_Y = 38, 4, 88   -- Textfelder: Höhe, Abstand, Unterkante des untersten
+local FIELD_H, FIELD_GAP, FIELDS_Y = 30, 4, 88   -- Textfelder: Höhe, Abstand, Unterkante des untersten
 local fieldBoxes = {}
 
 -- Übernimmt ein Textfeld, in dem gerade noch getippt wird (löst OnEditFocusLost aus)
@@ -577,7 +615,7 @@ local function CreateMainFrame()
     -- Zauberliste
     local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 12, -72)
-    scroll:SetPoint("BOTTOMRIGHT", -32, 264)
+    scroll:SetPoint("BOTTOMRIGHT", -32, 300)
     scrollChild = CreateFrame("Frame", nil, scroll)
     scrollChild:SetSize(COLS * (SIZE + GAP) + 6, 1)
     scroll:SetScrollChild(scrollChild)
@@ -589,26 +627,19 @@ local function CreateMainFrame()
     local sep2 = frame:CreateTexture(nil, "ARTWORK")
     sep2:SetColorTexture(1, 1, 1, 0.12)
     sep2:SetHeight(1)
-    sep2:SetPoint("BOTTOMLEFT", 12, 258)
-    sep2:SetPoint("BOTTOMRIGHT", -12, 258)
+    sep2:SetPoint("BOTTOMLEFT", 12, 294)
+    sep2:SetPoint("BOTTOMRIGHT", -12, 294)
 
     -- Unterer Bereich
     -- Eigene Texte in der Reihenfolge des Makros: je ein Haken (einfügen ja/nein) + Textfeld.
+    -- Das Textfeld ist nur bei gesetztem Haken zu sehen; ohne Haken bleibt der Text gespeichert,
+    -- kommt aber nicht ins Makro.
     -- Alle Felder sind gleich gebaut und gleich groß. "lines" = ganze Makrozeilen (Enter = neue
-    -- Zeile), sonst Bedingungen innerhalb einer Zeile (Enter übernimmt, langer Text bricht um).
-    local rows = {
-        { label = L.PRE_LABEL, key = "extraLines", use = "useExtraLines",
-          title = L.PRE_TT_TITLE, tip = L.PRE_TT_TEXT, example = PRE_EXAMPLE, lines = true },
-        { label = L.ATK_LABEL, key = "attackConditions", use = "useAttackConditions",
-          title = L.COND_TT_TITLE, tip = L.ATK_TT_TEXT, example = ATK_EXAMPLE },
-        { label = L.COND_LABEL, key = "conditions", use = "useConditions",
-          title = L.COND_TT_TITLE, tip = L.COND_TT_TEXT, example = COND_EXAMPLE },
-        { label = L.POST_LABEL, key = "linesAfter", use = "useLinesAfter",
-          title = L.PRE_TT_TITLE, tip = L.POST_TT_TEXT, example = POST_EXAMPLE, lines = true },
-    }
+    -- Zeile), sonst Text innerhalb einer Zeile (Enter übernimmt, langer Text bricht um).
+    local rows = FIELDS
     local labelWidth = 0
     for i, r in ipairs(rows) do
-        local store = Store(r.use)
+        local store = Store(r.key)
         r.y = FIELDS_Y + (#rows - i) * (FIELD_H + FIELD_GAP)
         r.check = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
         r.check:SetPoint("BOTTOMLEFT", 12, r.y + (FIELD_H - 24) / 2)   -- mittig neben dem Feld
@@ -621,6 +652,8 @@ local function CreateMainFrame()
         r.check:SetScript("OnClick", function(self)
             CommitFields()
             store[r.use] = self:GetChecked() and true or false
+            r.holder:SetShown(store[r.use])   -- Textfeld nur bei gesetztem Haken
+            if store[r.use] then r.box:SetFocus() end
             Refresh()   -- Markierungen: welche Makros sind noch aktuell?
         end)
     end
@@ -628,9 +661,9 @@ local function CreateMainFrame()
     local fieldLeft = 45 + labelWidth    -- alle Felder beginnen bündig hinter dem längsten Label
     local fieldWidth = math.max(120, frame:GetWidth() - 14 - fieldLeft)
     local function Preview()
-        return BuildBody(L.CMD_SPELL, CleanConditions(rows[3].box:GetText()),
-            CleanConditions(rows[2].box:GetText()), CleanLines(rows[1].box:GetText()),
-            CleanLines(rows[4].box:GetText()))
+        local p = {}
+        for _, r in ipairs(rows) do p[r.part] = Clean(r.key, r.box:GetText()) end
+        return BuildBody(L.CMD_SPELL, p)
     end
 
     for _, r in ipairs(rows) do
@@ -639,6 +672,8 @@ local function CreateMainFrame()
         local holder = CreateFrame("Frame", nil, frame)
         holder:SetPoint("BOTTOMLEFT", fieldLeft, r.y)
         holder:SetSize(fieldWidth, FIELD_H)
+        holder:SetShown(store[r.use])
+        r.holder = holder
         local edge = holder:CreateTexture(nil, "BACKGROUND")
         edge:SetAllPoints()
         edge:SetColorTexture(0.5, 0.5, 0.5, 0.7)
@@ -654,7 +689,7 @@ local function CreateMainFrame()
         r.box = box
         fieldBoxes[#fieldBoxes + 1] = box
         box:SetMultiLine(true)
-        box:SetFontObject(ChatFontNormal)
+        box:SetFontObject(GameFontHighlightSmall)   -- klein, damit zwei Zeilen ins Feld passen
         box:SetWidth(fieldWidth - 10)
         box:SetHeight(FIELD_H - 8)
         area:SetScrollChild(box)
@@ -663,7 +698,7 @@ local function CreateMainFrame()
         area:EnableMouseWheel(true)
         area:SetScript("OnMouseWheel", function(self, delta)
             local max = self:GetVerticalScrollRange() or 0
-            self:SetVerticalScroll(math.max(0, math.min(max, self:GetVerticalScroll() - delta * 14)))
+            self:SetVerticalScroll(math.max(0, math.min(max, self:GetVerticalScroll() - delta * 11)))
         end)
         -- Sichtbaren Ausschnitt der Schreibmarke folgen lassen
         box:SetScript("OnCursorChanged", function(_, _, y, _, h)
@@ -676,7 +711,7 @@ local function CreateMainFrame()
             end
         end)
         if not r.lines then
-            box:SetScript("OnEnterPressed", box.ClearFocus)   -- Bedingungen: Enter übernimmt
+            box:SetScript("OnEnterPressed", box.ClearFocus)   -- Text in einer Zeile: Enter übernimmt
         end
         box:SetAutoFocus(false)
         box:SetMaxLetters(r.lines and 200 or 120)
@@ -1010,16 +1045,15 @@ ev:SetScript("OnEvent", function(self, event, arg1)
         for k, v in pairs(DEFAULTS.minimap) do
             if db.minimap[k] == nil then db.minimap[k] = v end
         end
-        for _, k in ipairs({ "conditions", "attackConditions" }) do
-            if type(db[k]) ~= "string" then db[k] = DEFAULTS[k] end
-        end
-        for _, k in ipairs({ "useConditions", "useAttackConditions" }) do
-            if db[k] == nil then db[k] = DEFAULTS[k] end
-        end
         StartAttackMacrosCharDB = StartAttackMacrosCharDB or {}
         cdb = StartAttackMacrosCharDB
-        for k, v in pairs(CHAR_DEFAULTS) do
-            if type(cdb[k]) ~= type(v) then cdb[k] = v end
+        for _, f in ipairs(FIELDS) do
+            local store = Store(f.key)
+            if type(store[f.key]) ~= "string" then store[f.key] = "" end
+            -- Haken nur, wo auch Text steht: leere Felder bleiben im Fenster ausgeblendet
+            if type(store[f.use]) ~= "boolean" or store[f.key] == "" then
+                store[f.use] = store[f.key] ~= ""
+            end
         end
         CreateMinimapButton()
         CreateOptionsPanel()

@@ -1,5 +1,15 @@
 # Changelog
 
+## v1.6.0
+- New field "Lines before /cast": your own macro lines between `/startattack` and `/cast`
+- New field "Add after the spell": text attached directly to the spell name in the `/cast`
+  line, for example `(Rank 1)`
+- Both new fields have their own tick box and are saved per character. Together with the
+  existing fields you can now add your own text at every position of the macro
+- The text fields use a smaller font so that all six fit into the window
+- A text field is only shown while its box is ticked, and boxes start unticked. Boxes whose
+  field is empty are unticked when you log in
+
 ## v1.5.0
 - New field "Lines after /cast": add your own macro lines at the end of the macro. It has its
   own tick box and is saved per character
