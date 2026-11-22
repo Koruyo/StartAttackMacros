@@ -37,6 +37,9 @@ macro for every single ability:
   for example `[harm,nodead]`. Untick a box to create a macro without that text.
 - **Your own lines**: add commands such as `/petattack` before `/startattack`, between the two
   commands or after `/cast`, and text right after the spell name. Saved per character.
+- **Mouseover macros for heals**: a second page lists your helpful spells (heals, cleanses,
+  buffs) and creates `[@mouseover,help,nodead][]` macros for them, also in one click for your
+  whole action bar.
 - **Minimap button**, **Addon Compartment** entry and a full **options panel**.
 - **Broker displays**: shows up as a launcher in Titan Panel, ChocolateBar and other
   LibDataBroker displays.
@@ -125,6 +128,26 @@ line, without a space. With `(Rank 1)` the line becomes `/cast Shadow Bolt(Rank 
 - A macro can hold 255 characters. If your texts make it longer, the macro is created without
   them and you get a message in chat.
 
+### Mouseover macros for helpful spells
+
+The tab **Helpful spells** lists your heals, cleanses and buffs. The game only tells helpful from
+harmful spells, so all three kinds show up here. Click or drag one to get a mouseover macro
+without `/startattack`:
+
+```
+#showtooltip Flash Heal
+/cast [@mouseover,help,nodead][] Flash Heal
+```
+
+- The spell goes to the friendly, living unit under your mouse, otherwise to your current target.
+- The condition is a text field you can change, for example to
+  `[@mouseover,help,nodead][help,nodead][@player]` to fall back to yourself.
+- These macros are named `@SpellName`, so a spell that is both harmful and helpful can have an
+  attack macro and a mouseover macro at the same time.
+- **Convert all helpful spells on your action bars** replaces them in their slots and updates the
+  mouseover macros the addon already created.
+- Green check mark and yellow question mark work as on the attack page.
+
 ## Installation
 
 - **CurseForge app**: search for *StartAttack Macros*.
@@ -153,6 +176,8 @@ Aktionsleisten.
 - Grüner Haken = Makro ist aktuell, gelbes Fragezeichen = Makro passt noch nicht zu den
   aktuellen Texten. Fähigkeit anklicken oder **Alle Angriffe in den Leisten umwandeln** drücken,
   um die Makros zu aktualisieren.
+- Reiter **Hilfreiche Zauber**: Mouseover-Makros (`[@mouseover,help,nodead][]`) für Heilungen,
+  Reinigungen und Buffs, ohne `/startattack`. Die Makros heißen `@Zaubername`.
 - Optionen: **Esc → Optionen → AddOns → StartAttack Macros**
 
 ---

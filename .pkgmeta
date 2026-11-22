@@ -5,6 +5,7 @@ enable-nolib-creation: no
 ignore:
   - media
   - docs
+  - tests
   - README.md
   - .github
 

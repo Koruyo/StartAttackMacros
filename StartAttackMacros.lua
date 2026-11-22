@@ -8,6 +8,9 @@
 --  z. B. [harm,nodead] bzw. [@mouseover,harm,nodead][], mit eigenem Text hinter
 --  dem Zaubernamen und mit eigenen Zeilen vor, zwischen und nach den beiden Befehlen)
 -- und kann sie per Klick auf den Cursor legen oder direkt in die Leisten setzen.
+-- Zweite Seite "Hilfreich": Mouseover-Makros für Heilungen, Reinigungen und Buffs:
+--   #showtooltip Zauber
+--   /cast [@mouseover,help,nodead][] Zauber
 
 local ADDON_NAME, ns = ...
 local L = ns.L
@@ -16,11 +19,13 @@ local VERSION = (C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)(ADD
 if VERSION:find("^@") then VERSION = "dev" end
 local ADDON_ICON = "Interface\\Icons\\Ability_DualWield"
 local PREFIX = "+"          -- Makronamen: "+Finsterer Stoß" (max. 16 Zeichen)
+local HELP_PREFIX = "@"     -- Mouseover-Makros: "@Blitzheilung"
 local MAX_NAME = 16
 local MACRO_ICON = "INV_MISC_QUESTIONMARK" -- #showtooltip zeigt automatisch das Zaubersymbol
 local MAX_BODY = 255        -- maximale Makrolänge
 local COND_EXAMPLE = "[@mouseover,harm,nodead][]"
 local ATK_EXAMPLE = "[harm,nodead]"
+local HELP_EXAMPLE = "[@mouseover,help,nodead][]"
 local PRE_EXAMPLE = "/petattack"
 local MID_EXAMPLE = "/use 13"
 local POST_EXAMPLE = "/script UIErrorsFrame:Clear()"
@@ -65,9 +70,24 @@ local FIELDS = {
     { key = "linesAfter", use = "useLinesAfter", part = "post", lines = true, char = true,
       label = L.POST_LABEL, title = L.PRE_TT_TITLE, tip = L.POST_TT_TEXT, example = POST_EXAMPLE },
 }
-local FIELD = {}   -- key -> Feld
-for _, f in ipairs(FIELDS) do FIELD[f.key] = f end
 local NO_PARTS = { pre = "", atk = "", mid = "", cond = "", suffix = "", post = "" }
+
+-- Seite "Hilfreich": nur die Bedingung hinter /cast, vorbelegt mit dem Mouseover-Standard
+local HELP_FIELDS = {
+    { key = "helpConditions", use = "useHelpConditions", part = "cond", kind = "help",
+      default = HELP_EXAMPLE,
+      label = L.COND_LABEL, title = L.COND_TT_TITLE, tip = L.HELP_COND_TT_TEXT, example = HELP_EXAMPLE },
+}
+
+-- Die zwei Makroarten; build/parse werden bei den Makrofunktionen ergänzt
+local KIND = {
+    attack = { prefix = PREFIX, fields = FIELDS, none = NO_PARTS },
+    help = { prefix = HELP_PREFIX, fields = HELP_FIELDS, none = { cond = "" } },
+}
+local FIELD = {}   -- key -> Feld
+for _, k in pairs(KIND) do
+    for _, f in ipairs(k.fields) do FIELD[f.key] = f end
+end
 local db, cdb
 
 local function Store(key)
@@ -101,6 +121,16 @@ local function IsHarmful(id, name)
     return false
 end
 
+local function IsHelpful(id, name)
+    if C_Spell and C_Spell.IsSpellHelpful then
+        return C_Spell.IsSpellHelpful(id)
+    end
+    if IsHelpfulSpell then
+        return IsHelpfulSpell(name) and true or false
+    end
+    return false
+end
+
 -- Liefert alle aktiven (nicht passiven) Zauber im Zauberbuch, Ränge zusammengefasst
 local function GetSpellBookSpells()
     local list, seen = {}, {}
@@ -110,6 +140,7 @@ local function GetSpellBookSpells()
         list[#list + 1] = {
             id = id, name = name, icon = icon or SpellIcon(id),
             harmful = IsHarmful(id, name),
+            helpful = IsHelpful(id, name),
         }
     end
 
@@ -150,8 +181,9 @@ end
 -- Kürzt auf höchstens MAX_NAME Bytes, aber nie mitten in einem UTF-8-Zeichen.
 -- (Kyrillisch = 2 Bytes, Koreanisch/Chinesisch = 3 Bytes je Zeichen. Ein halbes Zeichen
 -- ergibt einen ungültigen Namen, und der Server verwirft dann beim Speichern Makros.)
-local function MacroName(spell)
-    local name = PREFIX .. spell
+-- kind = "attack" (Standard) oder "help"
+local function MacroName(spell, kind)
+    local name = KIND[kind or "attack"].prefix .. spell
     if #name <= MAX_NAME then return name end
     local cut = MAX_NAME
     while cut > 0 do
@@ -240,10 +272,26 @@ local function ParseBody(body)
     end
 end
 
+-- Mouseover-Makro der Seite "Hilfreich": p.cond = Bedingung hinter /cast
+local function BuildHelpBody(spell, p)
+    return "#showtooltip " .. spell .. "\n/cast " .. (p.cond ~= "" and p.cond .. " " or "") .. spell
+end
+
+local function ParseHelpBody(body)
+    local spell, cast = (body:gsub("%s+$", "")):match("^#showtooltip ([^\n]+)\n/cast ([^\n]+)$")
+    if not spell then return end
+    local cond, suffix = SplitCast(cast, spell)
+    if not cond or suffix ~= "" then return end
+    return spell, { cond = CleanConditions(cond) }
+end
+
+KIND.attack.build, KIND.attack.parse = BuildBody, ParseBody
+KIND.help.build, KIND.help.parse = BuildHelpBody, ParseHelpBody
+
 -- Die Makroteile nach den aktuellen Einstellungen (Text + Haken im Fenster)
-local function CurrentParts()
+local function CurrentParts(kind)
     local p = {}
-    for _, f in ipairs(FIELDS) do
+    for _, f in ipairs(KIND[kind or "attack"].fields) do
         local store = Store(f.key)
         p[f.part] = store[f.use] and store[f.key] or ""
     end
@@ -252,34 +300,35 @@ end
 
 -- Ohne "parts" gelten die aktuellen Einstellungen.
 -- Zweiter Rückgabewert: true, wenn die Texte wegen der Längengrenze weggelassen wurden.
-local function ComputeBody(spell, parts)
-    local body = BuildBody(spell, parts or CurrentParts())
-    if #body > MAX_BODY then return BuildBody(spell, NO_PARTS), true end
+local function ComputeBody(spell, parts, kind)
+    local k = KIND[kind or "attack"]
+    local body = k.build(spell, parts or CurrentParts(kind))
+    if #body > MAX_BODY then return k.build(spell, k.none), true end
     return body, false
 end
 
-local function MacroBody(spell, parts)
-    local body, tooLong = ComputeBody(spell, parts)
+local function MacroBody(spell, parts, kind)
+    local body, tooLong = ComputeBody(spell, parts, kind)
     if tooLong then Print(L.MSG_TOO_LONG:format(spell)) end
     return body
 end
 
 -- nil = kein Makro, "current" = entspricht den aktuellen Einstellungen,
 -- "outdated" = Makro vorhanden, ein Klick würde es aber ändern
-local function MacroState(spell)
-    local idx = GetMacroIndexByName(MacroName(spell))
+local function MacroState(spell, kind)
+    local idx = GetMacroIndexByName(MacroName(spell, kind))
     if not idx or idx == 0 then return nil end
     local body = (GetMacroBody(idx) or ""):gsub("%s+$", "")
-    return body == ComputeBody(spell) and "current" or "outdated"
+    return body == ComputeBody(spell, nil, kind) and "current" or "outdated"
 end
 
 -- Erstellt oder aktualisiert das Makro. Gibt den Makronamen zurück (Index ändert sich beim Sortieren!)
-local function EnsureMacro(spell)
+local function EnsureMacro(spell, kind)
     if InCombatLockdown() then
         Print(L.MSG_COMBAT_MACRO)
         return nil
     end
-    local name, body = MacroName(spell), MacroBody(spell)
+    local name, body = MacroName(spell, kind), MacroBody(spell, nil, kind)
     local idx = GetMacroIndexByName(name)
     if idx and idx > 0 then
         EditMacro(idx, name, MACRO_ICON, body)
@@ -302,14 +351,15 @@ local function EnsureMacro(spell)
     return name
 end
 
--- Ruft fn(idx, body, spell, parts) für jedes vom Addon erzeugte Makro auf
-local function ForEachAddonMacro(fn)
+-- Ruft fn(idx, body, spell, parts) für jedes vom Addon erzeugte Makro der Art "kind" auf
+local function ForEachAddonMacro(fn, kind)
+    local k = KIND[kind or "attack"]
     local function visit(idx)
         local name = GetMacroInfo(idx)
-        local body = name and name:sub(1, #PREFIX) == PREFIX and GetMacroBody(idx)
+        local body = name and name:sub(1, #k.prefix) == k.prefix and GetMacroBody(idx)
         if not body then return end
-        local spell, parts = ParseBody(body)
-        if spell and MacroName(spell) == name then fn(idx, body, spell, parts) end
+        local spell, parts = k.parse(body)
+        if spell and MacroName(spell, kind) == name then fn(idx, body, spell, parts) end
     end
     local numGlobal, numChar = GetNumMacros()
     local firstChar = (MAX_ACCOUNT_MACROS or 120) + 1
@@ -371,28 +421,28 @@ local function UpdateExistingMacros(key, old)
         Print(L.MSG_COND_COMBAT)
         return
     end
-    local part, count = FIELD[key].part, 0
+    local part, kind, count = FIELD[key].part, FIELD[key].kind, 0
     ForEachAddonMacro(function(idx, _, spell, parts)
         if parts[part] ~= old then return end
         parts[part] = new
-        EditMacro(idx, nil, nil, MacroBody(spell, parts))
+        EditMacro(idx, nil, nil, MacroBody(spell, parts, kind))
         count = count + 1
-    end)
+    end, kind)
     if count > 0 then Print(L.MSG_COND_UPDATED:format(count)) end
 end
 
 -- Bringt alle Addon-Makros auf den Stand der aktuellen Einstellungen (Texte + Haken).
 -- Gibt zurück, wie viele sich geändert haben.
-local function RefreshAllMacros()
+local function RefreshAllMacros(kind)
     local count = 0
     ForEachAddonMacro(function(idx, body, spell)
-        local new, tooLong = ComputeBody(spell)
+        local new, tooLong = ComputeBody(spell, nil, kind)
         if new ~= body then
             if tooLong then Print(L.MSG_TOO_LONG:format(spell)) end
             EditMacro(idx, nil, nil, new)
             count = count + 1
         end
-    end)
+    end, kind)
     return count
 end
 
@@ -403,8 +453,8 @@ local function SetConditions(key, text)
     UpdateExistingMacros(key, old)
 end
 
-local function PickupSpellMacro(spell)
-    local name = EnsureMacro(spell)
+local function PickupSpellMacro(spell, kind)
+    local name = EnsureMacro(spell, kind)
     if not name then return end
     local idx = GetMacroIndexByName(name)
     if idx and idx > 0 then
@@ -416,28 +466,33 @@ end
 ------------------------------------------------------------------------
 -- Aktionsleisten automatisch umwandeln
 ------------------------------------------------------------------------
-local function ConvertActionBars(includeAll)
+-- kind = "attack" (Standard): Angriffe -> /startattack-Makros,
+-- kind = "help": hilfreiche Zauber -> Mouseover-Makros
+local function ConvertActionBars(includeAll, kind)
     if InCombatLockdown() then
         Print(L.MSG_COMBAT)
         return
     end
+    local help = kind == "help"
+    local wanted = help and IsHelpful or IsHarmful
     -- 0) Vorhandene Makros an die aktuellen Texte/Haken anpassen
     --    (liegen schon als Makro in der Leiste und würden sonst übersprungen)
-    local updated = RefreshAllMacros()
+    local updated = RefreshAllMacros(kind)
 
-    -- 1) Welche Slots enthalten Angriffszauber?
+    -- 1) Welche Slots enthalten passende Zauber?
     local todo = {}
     for slot = 1, 180 do
         local kind, id = GetActionInfo(slot)
         if kind == "spell" and id and not SKIP[id] then
             local name = SpellName(id)
-            if name and (includeAll or IsHarmful(id, name)) then
+            if name and (includeAll or wanted(id, name)) then
                 todo[#todo + 1] = { slot = slot, spell = name }
             end
         end
     end
     if #todo == 0 then
-        Print(updated > 0 and L.MSG_COND_UPDATED:format(updated) or L.MSG_NOTHING_FOUND)
+        Print(updated > 0 and L.MSG_COND_UPDATED:format(updated)
+            or (help and L.MSG_HELP_NOTHING_FOUND or L.MSG_NOTHING_FOUND))
         return
     end
 
@@ -445,7 +500,7 @@ local function ConvertActionBars(includeAll)
     local made = {}
     for _, t in ipairs(todo) do
         if made[t.spell] == nil then
-            made[t.spell] = EnsureMacro(t.spell) or false
+            made[t.spell] = EnsureMacro(t.spell, kind) or false
         end
     end
 
@@ -462,7 +517,7 @@ local function ConvertActionBars(includeAll)
             count = count + 1
         end
     end
-    Print(L.MSG_CONVERTED:format(count))
+    Print((help and L.MSG_HELP_CONVERTED or L.MSG_CONVERTED):format(count))
     if updated > 0 then Print(L.MSG_COND_UPDATED:format(updated)) end
 end
 
@@ -470,6 +525,8 @@ end
 -- Hauptfenster
 ------------------------------------------------------------------------
 local frame, scrollChild, buttons, showAll = nil, nil, {}, false
+local page = "attack"       -- sichtbare Seite: "attack" oder "help" (zugleich die Makroart)
+local SetPage               -- wird in CreateMainFrame definiert
 local COLS, SIZE, GAP = 8, 38, 8
 local FIELD_H, FIELD_GAP, FIELDS_Y = 30, 4, 88   -- Textfelder: Höhe, Abstand, Unterkante des untersten
 local fieldBoxes = {}
@@ -495,7 +552,7 @@ local CHECK_TEXTURE = {
 }
 
 local function UpdateCheck(b)
-    local state = MacroState(b.spell)
+    local state = MacroState(b.spell, page)
     b.state = state
     b.check:SetTexture(CHECK_TEXTURE[state or "current"])
     b.check:SetShown(state ~= nil)
@@ -526,7 +583,7 @@ local function CreateSpellButton(i)
 
     local function grab(self)
         CommitFields()
-        PickupSpellMacro(self.spell)
+        PickupSpellMacro(self.spell, page)
         UpdateCheck(self)
         UpdateFooter()
     end
@@ -552,7 +609,11 @@ local function Refresh()
     if not frame then return end
     local shown = {}
     for _, s in ipairs(GetSpellBookSpells()) do
-        if showAll or s.harmful then shown[#shown + 1] = s end
+        if page == "help" then
+            if s.helpful then shown[#shown + 1] = s end
+        elseif showAll or s.harmful then
+            shown[#shown + 1] = s
+        end
     end
 
     for i, s in ipairs(shown) do
@@ -598,12 +659,24 @@ local function CreateMainFrame()
     frame.title:SetText(TITLE)
     icon:SetPoint("RIGHT", frame.title, "LEFT", -4, 0)
 
-    -- Kopfbereich
-    local header = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    header:SetPoint("TOPLEFT", 16, -34)
-    header:SetText(L.WINDOW_HEADER)
+    -- Kopfbereich: zwei Reiter, darunter der Hinweis
+    local tabs, panels = {}, {}
+    local function AddTab(key, text, anchor)
+        local t = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        t:SetText(text)
+        t:SetSize(math.max(90, (t:GetTextWidth() or 0) + 24), 22)
+        if anchor then
+            t:SetPoint("LEFT", anchor, "RIGHT", 4, 0)
+        else
+            t:SetPoint("TOPLEFT", 12, -27)
+        end
+        t:SetScript("OnClick", function() CommitFields(); SetPage(key) end)
+        tabs[key] = t
+        return t
+    end
+    AddTab("help", L.TAB_HELP, AddTab("attack", L.WINDOW_HEADER))
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    hint:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -3)
+    hint:SetPoint("TOPLEFT", 16, -53)
     hint:SetText(L.WINDOW_HINT)
 
     local sep = frame:CreateTexture(nil, "ARTWORK")
@@ -612,10 +685,9 @@ local function CreateMainFrame()
     sep:SetPoint("TOPLEFT", 12, -66)
     sep:SetPoint("TOPRIGHT", -12, -66)
 
-    -- Zauberliste
+    -- Zauberliste (Unterkante hängt von der Seite ab, siehe SetPage)
     local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 12, -72)
-    scroll:SetPoint("BOTTOMRIGHT", -32, 300)
     scrollChild = CreateFrame("Frame", nil, scroll)
     scrollChild:SetSize(COLS * (SIZE + GAP) + 6, 1)
     scroll:SetScrollChild(scrollChild)
@@ -627,122 +699,133 @@ local function CreateMainFrame()
     local sep2 = frame:CreateTexture(nil, "ARTWORK")
     sep2:SetColorTexture(1, 1, 1, 0.12)
     sep2:SetHeight(1)
-    sep2:SetPoint("BOTTOMLEFT", 12, 294)
-    sep2:SetPoint("BOTTOMRIGHT", -12, 294)
 
-    -- Unterer Bereich
+    -- Unterer Bereich: je Seite ein eigener Rahmen mit ihren Textfeldern
+    for key in pairs(KIND) do
+        local panel = CreateFrame("Frame", nil, frame)
+        panel:SetPoint("BOTTOMLEFT")
+        panel:SetPoint("BOTTOMRIGHT")
+        panel:SetHeight(300)
+        panels[key] = panel
+    end
+
     -- Eigene Texte in der Reihenfolge des Makros: je ein Haken (einfügen ja/nein) + Textfeld.
     -- Das Textfeld ist nur bei gesetztem Haken zu sehen; ohne Haken bleibt der Text gespeichert,
     -- kommt aber nicht ins Makro.
     -- Alle Felder sind gleich gebaut und gleich groß. "lines" = ganze Makrozeilen (Enter = neue
     -- Zeile), sonst Text innerhalb einer Zeile (Enter übernimmt, langer Text bricht um).
-    local rows = FIELDS
-    local labelWidth = 0
-    for i, r in ipairs(rows) do
-        local store = Store(r.key)
-        r.y = FIELDS_Y + (#rows - i) * (FIELD_H + FIELD_GAP)
-        r.check = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
-        r.check:SetPoint("BOTTOMLEFT", 12, r.y + (FIELD_H - 24) / 2)   -- mittig neben dem Feld
-        r.check:SetSize(24, 24)
-        r.check:SetChecked(store[r.use])
-        local text = r.check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        text:SetPoint("LEFT", r.check, "RIGHT", 2, 1)
-        text:SetText(r.label)
-        labelWidth = math.max(labelWidth, text:GetStringWidth())
-        r.check:SetScript("OnClick", function(self)
-            CommitFields()
-            store[r.use] = self:GetChecked() and true or false
-            r.holder:SetShown(store[r.use])   -- Textfeld nur bei gesetztem Haken
-            if store[r.use] then r.box:SetFocus() end
-            Refresh()   -- Markierungen: welche Makros sind noch aktuell?
-        end)
-    end
+    -- Gibt die Oberkante der Felder zurück (Abstand vom unteren Fensterrand).
+    local function BuildRows(kind)
+        local panel, rows = panels[kind], KIND[kind].fields
+        local labelWidth = 0
+        for i, r in ipairs(rows) do
+            local store = Store(r.key)
+            r.y = FIELDS_Y + (#rows - i) * (FIELD_H + FIELD_GAP)
+            r.check = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+            r.check:SetPoint("BOTTOMLEFT", 12, r.y + (FIELD_H - 24) / 2)   -- mittig neben dem Feld
+            r.check:SetSize(24, 24)
+            r.check:SetChecked(store[r.use])
+            local text = r.check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            text:SetPoint("LEFT", r.check, "RIGHT", 2, 1)
+            text:SetText(r.label)
+            labelWidth = math.max(labelWidth, text:GetStringWidth())
+            r.check:SetScript("OnClick", function(self)
+                CommitFields()
+                store[r.use] = self:GetChecked() and true or false
+                r.holder:SetShown(store[r.use])   -- Textfeld nur bei gesetztem Haken
+                if store[r.use] then r.box:SetFocus() end
+                Refresh()   -- Markierungen: welche Makros sind noch aktuell?
+            end)
+        end
 
-    local fieldLeft = 45 + labelWidth    -- alle Felder beginnen bündig hinter dem längsten Label
-    local fieldWidth = math.max(120, frame:GetWidth() - 14 - fieldLeft)
-    local function Preview()
-        local p = {}
-        for _, r in ipairs(rows) do p[r.part] = Clean(r.key, r.box:GetText()) end
-        return BuildBody(L.CMD_SPELL, p)
-    end
+        local fieldLeft = 45 + labelWidth    -- alle Felder beginnen bündig hinter dem längsten Label
+        local fieldWidth = math.max(120, frame:GetWidth() - 14 - fieldLeft)
+        local function Preview()
+            local p = {}
+            for _, r in ipairs(rows) do p[r.part] = Clean(r.key, r.box:GetText()) end
+            return KIND[kind].build(L.CMD_SPELL, p)
+        end
 
-    for _, r in ipairs(rows) do
-        local store = Store(r.key)
-        -- Eigener Rahmen + ScrollFrame, damit lange Eingaben nicht überlaufen
-        local holder = CreateFrame("Frame", nil, frame)
-        holder:SetPoint("BOTTOMLEFT", fieldLeft, r.y)
-        holder:SetSize(fieldWidth, FIELD_H)
-        holder:SetShown(store[r.use])
-        r.holder = holder
-        local edge = holder:CreateTexture(nil, "BACKGROUND")
-        edge:SetAllPoints()
-        edge:SetColorTexture(0.5, 0.5, 0.5, 0.7)
-        local bg = holder:CreateTexture(nil, "BORDER")
-        bg:SetPoint("TOPLEFT", 1, -1)
-        bg:SetPoint("BOTTOMRIGHT", -1, 1)
-        bg:SetColorTexture(0.03, 0.03, 0.03, 1)
+        for _, r in ipairs(rows) do
+            local store = Store(r.key)
+            -- Eigener Rahmen + ScrollFrame, damit lange Eingaben nicht überlaufen
+            local holder = CreateFrame("Frame", nil, panel)
+            holder:SetPoint("BOTTOMLEFT", fieldLeft, r.y)
+            holder:SetSize(fieldWidth, FIELD_H)
+            holder:SetShown(store[r.use])
+            r.holder = holder
+            local edge = holder:CreateTexture(nil, "BACKGROUND")
+            edge:SetAllPoints()
+            edge:SetColorTexture(0.5, 0.5, 0.5, 0.7)
+            local bg = holder:CreateTexture(nil, "BORDER")
+            bg:SetPoint("TOPLEFT", 1, -1)
+            bg:SetPoint("BOTTOMRIGHT", -1, 1)
+            bg:SetColorTexture(0.03, 0.03, 0.03, 1)
 
-        local area = CreateFrame("ScrollFrame", nil, holder)
-        area:SetPoint("TOPLEFT", 5, -4)
-        area:SetPoint("BOTTOMRIGHT", -5, 4)
-        local box = CreateFrame("EditBox", nil, area)
-        r.box = box
-        fieldBoxes[#fieldBoxes + 1] = box
-        box:SetMultiLine(true)
-        box:SetFontObject(GameFontHighlightSmall)   -- klein, damit zwei Zeilen ins Feld passen
-        box:SetWidth(fieldWidth - 10)
-        box:SetHeight(FIELD_H - 8)
-        area:SetScrollChild(box)
-        area:EnableMouse(true)
-        area:SetScript("OnMouseDown", function() box:SetFocus() end)
-        area:EnableMouseWheel(true)
-        area:SetScript("OnMouseWheel", function(self, delta)
-            local max = self:GetVerticalScrollRange() or 0
-            self:SetVerticalScroll(math.max(0, math.min(max, self:GetVerticalScroll() - delta * 11)))
-        end)
-        -- Sichtbaren Ausschnitt der Schreibmarke folgen lassen
-        box:SetScript("OnCursorChanged", function(_, _, y, _, h)
-            local top, view = area:GetVerticalScroll(), area:GetHeight()
-            y = -y
-            if y < top then
-                area:SetVerticalScroll(y)
-            elseif y + h > top + view then
-                area:SetVerticalScroll(y + h - view)
+            local area = CreateFrame("ScrollFrame", nil, holder)
+            area:SetPoint("TOPLEFT", 5, -4)
+            area:SetPoint("BOTTOMRIGHT", -5, 4)
+            local box = CreateFrame("EditBox", nil, area)
+            r.box = box
+            fieldBoxes[#fieldBoxes + 1] = box
+            box:SetMultiLine(true)
+            box:SetFontObject(GameFontHighlightSmall)   -- klein, damit zwei Zeilen ins Feld passen
+            box:SetWidth(fieldWidth - 10)
+            box:SetHeight(FIELD_H - 8)
+            area:SetScrollChild(box)
+            area:EnableMouse(true)
+            area:SetScript("OnMouseDown", function() box:SetFocus() end)
+            area:EnableMouseWheel(true)
+            area:SetScript("OnMouseWheel", function(self, delta)
+                local max = self:GetVerticalScrollRange() or 0
+                self:SetVerticalScroll(math.max(0, math.min(max, self:GetVerticalScroll() - delta * 11)))
+            end)
+            -- Sichtbaren Ausschnitt der Schreibmarke folgen lassen
+            box:SetScript("OnCursorChanged", function(_, _, y, _, h)
+                local top, view = area:GetVerticalScroll(), area:GetHeight()
+                y = -y
+                if y < top then
+                    area:SetVerticalScroll(y)
+                elseif y + h > top + view then
+                    area:SetVerticalScroll(y + h - view)
+                end
+            end)
+            if not r.lines then
+                box:SetScript("OnEnterPressed", box.ClearFocus)   -- Text in einer Zeile: Enter übernimmt
             end
-        end)
-        if not r.lines then
-            box:SetScript("OnEnterPressed", box.ClearFocus)   -- Text in einer Zeile: Enter übernimmt
-        end
-        box:SetAutoFocus(false)
-        box:SetMaxLetters(r.lines and 200 or 120)
-        box:SetText(store[r.key])
-        box:SetCursorPosition(0)
-        box:SetScript("OnEscapePressed", function(self)
-            self:SetText(store[r.key])
-            self:ClearFocus()
-        end)
-        box:HookScript("OnEditFocusLost", function(self)
-            SetConditions(r.key, self:GetText())
-            Refresh()
-            self:SetText(store[r.key])
-            self:SetCursorPosition(0)
-        end)
+            box:SetAutoFocus(false)
+            box:SetMaxLetters(r.lines and 200 or 120)
+            box:SetText(store[r.key])
+            box:SetCursorPosition(0)
+            box:SetScript("OnEscapePressed", function(self)
+                self:SetText(store[r.key])
+                self:ClearFocus()
+            end)
+            box:HookScript("OnEditFocusLost", function(self)
+                SetConditions(r.key, self:GetText())
+                Refresh()
+                self:SetText(store[r.key])
+                self:SetCursorPosition(0)
+            end)
 
-        local function tooltip(self)
-            GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText(r.title)
-            GameTooltip:AddLine(r.tip:format("|cffff8c1a" .. r.example .. "|r"), 1, 1, 1, true)
-            GameTooltip:AddLine(" ")
-            GameTooltip:AddLine(Preview(), 0.6, 0.6, 0.6)
-            GameTooltip:Show()
+            local function tooltip(self)
+                GameTooltip:SetOwner(self, "ANCHOR_TOP")
+                GameTooltip:SetText(r.title)
+                GameTooltip:AddLine(r.tip:format("|cffff8c1a" .. r.example .. "|r"), 1, 1, 1, true)
+                GameTooltip:AddLine(" ")
+                GameTooltip:AddLine(Preview(), 0.6, 0.6, 0.6)
+                GameTooltip:Show()
+            end
+            for _, w in ipairs({ r.check, box, area }) do
+                w:SetScript("OnEnter", tooltip)
+                w:SetScript("OnLeave", function() GameTooltip:Hide() end)
+            end
         end
-        for _, w in ipairs({ r.check, box, area }) do
-            w:SetScript("OnEnter", tooltip)
-            w:SetScript("OnLeave", function() GameTooltip:Hide() end)
-        end
+        return FIELDS_Y + #rows * (FIELD_H + FIELD_GAP) - FIELD_GAP
     end
+    local top = { attack = BuildRows("attack"), help = BuildRows("help") }
 
-    local check = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
+    local check = CreateFrame("CheckButton", nil, panels.attack, "UICheckButtonTemplate")
     check:SetPoint("BOTTOMLEFT", 12, 62)
     check:SetSize(24, 24)
     local checkText = check:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -756,20 +839,37 @@ local function CreateMainFrame()
     frame.footer = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.footer:SetPoint("BOTTOMLEFT", 16, 44)
 
+    -- Umwandeln-Knopf: gilt für die sichtbare Seite
     local convert = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
     convert:SetPoint("BOTTOMLEFT", 12, 12)
     convert:SetPoint("BOTTOMRIGHT", -12, 12)
     convert:SetHeight(26)
-    convert:SetText(L.CONVERT_BUTTON)
-    convert:SetScript("OnClick", function() CommitFields(); ConvertActionBars(false); Refresh() end)
+    convert:SetScript("OnClick", function() CommitFields(); ConvertActionBars(false, page); Refresh() end)
     convert:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText(L.CONVERT_TT_TITLE)
-        GameTooltip:AddLine(L.CONVERT_TT_TEXT, 1, 1, 1, true)
+        GameTooltip:AddLine(page == "help" and L.HELP_CONVERT_TT_TEXT or L.CONVERT_TT_TEXT, 1, 1, 1, true)
         GameTooltip:AddLine(L.CONVERT_TT_UPDATE, 1, 1, 1, true)
         GameTooltip:Show()
     end)
     convert:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- Seitenwechsel: Reiter markieren, Textfelder der Seite zeigen, Liste bis an die Felder ziehen
+    SetPage = function(key)
+        page = key
+        for k, t in pairs(tabs) do
+            if k == key then t:LockHighlight() else t:UnlockHighlight() end
+        end
+        for k, panel in pairs(panels) do panel:SetShown(k == key) end
+        local edge = top[key] + 6
+        sep2:ClearAllPoints()
+        sep2:SetPoint("BOTTOMLEFT", 12, edge)
+        sep2:SetPoint("BOTTOMRIGHT", -12, edge)
+        scroll:SetPoint("BOTTOMRIGHT", -32, edge + 6)
+        convert:SetText(key == "help" and L.HELP_CONVERT_BUTTON or L.CONVERT_BUTTON)
+        Refresh()
+    end
+    SetPage(page)
 
     frame:SetScript("OnShow", function()
         PlaySound(SOUNDKIT and SOUNDKIT.IG_CHARACTER_INFO_OPEN or 839)
@@ -1047,9 +1147,9 @@ ev:SetScript("OnEvent", function(self, event, arg1)
         end
         StartAttackMacrosCharDB = StartAttackMacrosCharDB or {}
         cdb = StartAttackMacrosCharDB
-        for _, f in ipairs(FIELDS) do
+        for _, f in pairs(FIELD) do
             local store = Store(f.key)
-            if type(store[f.key]) ~= "string" then store[f.key] = "" end
+            if type(store[f.key]) ~= "string" then store[f.key] = f.default or "" end
             -- Haken nur, wo auch Text steht: leere Felder bleiben im Fenster ausgeblendet
             if type(store[f.use]) ~= "boolean" or store[f.key] == "" then
                 store[f.use] = store[f.key] ~= ""

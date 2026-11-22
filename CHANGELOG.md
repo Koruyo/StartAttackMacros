@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.7.0
+- New page "Helpful spells": creates mouseover macros (`/cast [@mouseover,help,nodead][] Spell`)
+  for your heals, cleanses and buffs, without `/startattack`. The condition can be changed in a
+  text field
+- "Convert all helpful spells on your action bars" replaces them with their mouseover macros
+- Mouseover macros are named `@SpellName` and exist next to the `+SpellName` attack macros
+- The window now has two tabs: "Attack abilities" and "Helpful spells"
+
 ## v1.6.0
 - New field "Lines before /cast": your own macro lines between `/startattack` and `/cast`
 - New field "Add after the spell": text attached directly to the spell name in the `/cast`
